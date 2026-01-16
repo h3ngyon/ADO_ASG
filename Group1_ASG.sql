@@ -535,8 +535,6 @@ SELECT
 FROM ProspectiveBuyer
 QUALIFY ROW_NUMBER() OVER (PARTITION BY "ProspectiveBuyerKey" ORDER BY "BirthDate" DESC) = 1;
 
-SELECT * FROM PROSPECTIVEBUYER_CLEAN;
-
 -- Cleaned Fact Survery Response 
 
 CREATE OR REPLACE TABLE FACTSURVEYRESPONSE_CLEAN AS
@@ -549,7 +547,6 @@ SELECT
     "ProductSubcategoryKey" AS PRODUCTSUBCATEGORYKEY,
     COALESCE(TRIM("EnglishProductSubcategoryName"), '') AS PRODUCTSUBCATEGORY
 FROM FactSurveyResponse;
-SELECT * FROM FACTSURVEYRESPONSE_CLEAN;
 
 -- Cleaned Fact Sales Quota
 
@@ -567,7 +564,6 @@ SELECT
     -- Change data type from FLOAT to DECIMAL
     CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SALESAMOUNTQUOTA
 FROM FactSalesQuota;
-SELECT * FROM FACTSALESQUOTA_CLEAN;
 
 --  Clean Fact Reseller Sales
 
@@ -581,7 +577,6 @@ SELECT
     CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SalesAmountQuota
 FROM FactSalesQuota;
 
-SELECT * FROM FACTSALESQUOTA_CLEAN;
 
 -- Clean Fact Internet Sales Reason
 CREATE OR REPLACE TABLE FACTINTERNETSALESREASON_CLEAN AS
@@ -590,8 +585,6 @@ SELECT DISTINCT
     "SalesOrderLineNumber" AS SalesOrderLineNumber,
     "SalesReasonKey" AS SalesReasonKey
 FROM FactInternetSalesReason;
-
-SELECT * FROM FACTINTERNETSALESREASON_CLEAN;
 
 -- Clean Fact Internet Sales
 CREATE OR REPLACE TABLE FACTINTERNETSALES_CLEAN AS
@@ -628,8 +621,6 @@ SELECT
     COALESCE("CarrierTrackingNumber", '') AS CarrierTrackingNumber,
     COALESCE("CustomerPONumber", '') AS CustomerPONumber
 FROM FactInternetSales;
-
-SELECT * FROM FACTINTERNETSALES_CLEAN;
 
 
 
