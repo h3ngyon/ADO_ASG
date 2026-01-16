@@ -49,7 +49,7 @@ ORDER BY "AccountCodeAlternateKey";
 -- to keep the row with the most information. It also standardises the text(trims it.)
 --Creates new table "DIMACCOUNT_CLEAN" to store the cleaned data.
 
-CREATE OR REPLACE TABLE "DIMACCOUNT_CLEAN" AS
+CREATE OR REPLACE TABLE DIMACCOUNT_CLEAN AS
 WITH base AS (
   SELECT
     "AccountKey" AS AccountKey,
@@ -80,6 +80,10 @@ SELECT * FROM dedup;
 
 -- Optional: Show changes for the new table.
 SELECT * FROM DIMACCOUNT_CLEAN;
+
+DROP TABLE "DIMACCOUNT_CLEAN";
+
+
 
 -- DIMACCOUNT is marked as cleaned after the aforementioned steps.
 
@@ -163,45 +167,53 @@ LIMIT 5;
 CREATE OR REPLACE TABLE DIMCUSTOMER_CLEAN AS
 WITH base AS (
   SELECT
-    "CustomerKey" AS CustomerKey,
-    TRIM("CustomerAlternateKey") AS CustomerAlternateKey,
+    "CustomerKey"                          AS CustomerKey,
+    "GeographyKey"                         AS GeographyKey,
+    NULLIF(TRIM("CustomerAlternateKey"), '') AS CustomerAlternateKey,
 
-    -- Names (common columns)
-    INITCAP(TRIM("FirstName"))   AS FirstName,
-    INITCAP(TRIM("LastName"))    AS LastName,
+    NULLIF(INITCAP(TRIM("Title")), '')     AS Title,
+    NULLIF(INITCAP(TRIM("FirstName")), '') AS FirstName,
+    NULLIF(INITCAP(TRIM("MiddleName")), '') AS MiddleName,
+    NULLIF(INITCAP(TRIM("LastName")), '')  AS LastName,
+    TRY_TO_BOOLEAN("NameStyle")            AS NameStyle,
+    NULLIF(INITCAP(TRIM("Suffix")), '')    AS Suffix,
 
-    -- Email normalization (if exists)
-    LOWER(TRIM("EmailAddress"))  AS EmailAddress,
+    TRY_TO_DATE("BirthDate")               AS BirthDate,
 
-    -- Gender normalization (examples: 'M','F','Male','Female')
     CASE
       WHEN UPPER(TRIM("Gender")) IN ('M','MALE') THEN 'M'
       WHEN UPPER(TRIM("Gender")) IN ('F','FEMALE') THEN 'F'
       ELSE NULL
-    END AS Gender,
+    END                                    AS Gender,
 
-    -- Marital status normalization (examples: 'M','S','Married','Single')
     CASE
       WHEN UPPER(TRIM("MaritalStatus")) IN ('M','MARRIED') THEN 'Married'
       WHEN UPPER(TRIM("MaritalStatus")) IN ('S','SINGLE') THEN 'Single'
       ELSE NULL
-    END AS MaritalStatus,
+    END                                    AS MaritalStatus,
 
-    -- Geography (common columns)
-    INITCAP(TRIM("City"))              AS City,
-    INITCAP(TRIM("StateProvinceName")) AS StateProvinceName,
-    INITCAP(TRIM("CountryRegionName")) AS CountryRegionName,
+    NULLIF(LOWER(TRIM("EmailAddress")), '') AS EmailAddress,
+    NULLIF(TRIM("Phone"), '')              AS Phone,
 
-    -- Keep everything else (add columns you have)
-    DateFirstPurchase,
-    BirthDate,
-    YearlyIncome,
-    TotalChildren,
-    NumberChildrenAtHome,
-    EnglishEducation,
-    EnglishOccupation
+    "YearlyIncome"                         AS YearlyIncome,
+    "TotalChildren"                        AS TotalChildren,
+    "NumberChildrenAtHome"                 AS NumberChildrenAtHome,
+    NULLIF(INITCAP(TRIM("EnglishEducation")), '')  AS EnglishEducation,
+    NULLIF(INITCAP(TRIM("SpanishEducation")), '')  AS SpanishEducation,
+    NULLIF(INITCAP(TRIM("FrenchEducation")), '')   AS FrenchEducation,
+    NULLIF(INITCAP(TRIM("EnglishOccupation")), '') AS EnglishOccupation,
+    NULLIF(INITCAP(TRIM("SpanishOccupation")), '') AS SpanishOccupation,
+    NULLIF(INITCAP(TRIM("FrenchOccupation")), '')  AS FrenchOccupation,
+    "HouseOwnerFlag"                       AS HouseOwnerFlag,
+    "NumberCarsOwned"                      AS NumberCarsOwned,
+
+    NULLIF(TRIM("AddressLine1"), '')       AS AddressLine1,
+    NULLIF(TRIM("AddressLine2"), '')       AS AddressLine2,
+
+    TRY_TO_DATE("DateFirstPurchase")       AS DateFirstPurchase,
+    NULLIF(TRIM("CommuteDistance"), '')    AS CommuteDistance
   FROM DIMCUSTOMER
-  WHERE CustomerKey IS NOT NULL
+  WHERE "CustomerKey" IS NOT NULL
 ),
 dedup_pk AS (
   SELECT *
@@ -209,26 +221,123 @@ dedup_pk AS (
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY CustomerKey
     ORDER BY
-      (IFF(EmailAddress IS NOT NULL AND EmailAddress <> '', 1, 0) +
-       IFF(FirstName IS NOT NULL AND FirstName <> '', 1, 0) +
-       IFF(LastName IS NOT NULL AND LastName <> '', 1, 0)
-      ) DESC
-  ) = 1
-),
-dedup_people AS (
-  -- Optional: also dedupe by email if present (keeps best row per email)
-  SELECT *
-  FROM dedup_pk
-  QUALIFY ROW_NUMBER() OVER (
-    PARTITION BY EmailAddress
-    ORDER BY
-      (IFF(DateFirstPurchase IS NOT NULL, 1, 0) +
-       IFF(BirthDate IS NOT NULL, 1, 0) +
-       IFF(YearlyIncome IS NOT NULL, 1, 0)
+      ( IFF(CustomerAlternateKey IS NOT NULL, 1, 0)
+      + IFF(FirstName IS NOT NULL, 1, 0)
+      + IFF(LastName IS NOT NULL, 1, 0)
+      + IFF(DateFirstPurchase IS NOT NULL, 1, 0)
       ) DESC
   ) = 1
 )
-SELECT * FROM dedup_people;
+SELECT *
+FROM dedup_pk;
+
+SELECT * FROM DIMCUSTOMER
+LIMIT 10;
+SELECT * FROM DIMCUSTOMER_CLEAN
+LIMIT 10;
 
 
+SELECT * FROM "DIMDATE";
+
+-- [Table: DIMDATE] 3.1 NULL PK checks
+SELECT COUNT(*) AS NULL_DATEKEY_COUNT
+FROM DIMDATE
+WHERE "DateKey" IS NULL;
+
+-- [Table: DIMDATE] 3.2 Duplicate PK checks
+SELECT "DateKey", COUNT(*) AS DUPLICATE_DATEKEY_COUNT
+FROM DIMDATE
+GROUP BY "DateKey"
+HAVING COUNT(*) > 1;
+
+-- [Table: DIMDATE] 3.3 Duplicate FullDate checks
+SELECT "FullDateAlternateKey", COUNT(*) AS cnt
+FROM DIMDATE
+GROUP BY "FullDateAlternateKey"
+HAVING COUNT(*) > 1;
+
+-- [Table: DIMDATE] 3.4 Clean table by removing NULL PKs, standardising text fields, and deduplicating.
+CREATE OR REPLACE TABLE DIMDATE_CLEAN AS
+WITH base AS (
+  SELECT
+    "DateKey"                           AS DateKey,
+    TRY_TO_DATE("FullDateAlternateKey") AS FullDateAlternateKey,
+    "DayNumberOfWeek"                   AS DayNumberOfWeek,
+    NULLIF(INITCAP(TRIM("EnglishDayNameOfWeek")), '') AS EnglishDayNameOfWeek,
+    NULLIF(INITCAP(TRIM("SpanishDayNameOfWeek")), '') AS SpanishDayNameOfWeek,
+    NULLIF(INITCAP(TRIM("FrenchDayNameOfWeek")), '')  AS FrenchDayNameOfWeek,
+    "DayNumberOfMonth"                  AS DayNumberOfMonth,
+    "DayNumberOfYear"                   AS DayNumberOfYear,
+    "WeekNumberOfYear"                  AS WeekNumberOfYear,
+    NULLIF(INITCAP(TRIM("EnglishMonthName")), '') AS EnglishMonthName,
+    NULLIF(INITCAP(TRIM("SpanishMonthName")), '') AS SpanishMonthName,
+    NULLIF(INITCAP(TRIM("FrenchMonthName")), '')  AS FrenchMonthName,
+    "MonthNumberOfYear"                 AS MonthNumberOfYear,
+    "CalendarQuarter"                   AS CalendarQuarter,
+    "CalendarYear"                      AS CalendarYear,
+    "CalendarSemester"                  AS CalendarSemester,
+    "FiscalQuarter"                     AS FiscalQuarter,
+    "FiscalYear"                        AS FiscalYear,
+    "FiscalSemester"                    AS FiscalSemester
+  FROM DIMDATE
+  WHERE "DateKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DateKey
+    ORDER BY
+      ( IFF(FullDateAlternateKey IS NOT NULL, 1, 0)
+      + IFF(EnglishDayNameOfWeek IS NOT NULL, 1, 0)
+      + IFF(EnglishMonthName IS NOT NULL, 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
+-- Optional: Show changes for the new table.
+SELECT * FROM DIMDATE_CLEAN;
+
+-- [Table: DIMDEPARTMENTGROUP] 4.1 NULL PK checks
+SELECT COUNT(*) AS NULL_DEPARTMENTGROUPKEY_COUNT
+FROM DIMDEPARTMENTGROUP
+WHERE "DepartmentGroupKey" IS NULL;
+
+-- [Table: DIMDEPARTMENTGROUP] 4.2 Duplicate PK checks
+SELECT "DepartmentGroupKey", COUNT(*) AS DUPLICATE_DEPARTMENTGROUPKEY_COUNT
+FROM DIMDEPARTMENTGROUP
+GROUP BY "DepartmentGroupKey"
+HAVING COUNT(*) > 1;
+
+-- [Table: DIMDEPARTMENTGROUP] 4.3 Duplicate DepartmentGroupName checks
+SELECT "DepartmentGroupName", COUNT(*) AS cnt
+FROM DIMDEPARTMENTGROUP
+GROUP BY "DepartmentGroupName"
+HAVING COUNT(*) > 1;
+
+-- [Table: DIMDEPARTMENTGROUP] 4.4 Clean table by removing NULL PKs, standardising text fields, and deduplicating.
+CREATE OR REPLACE TABLE DIMDEPARTMENTGROUP_CLEAN AS
+WITH base AS (
+  SELECT
+    "DepartmentGroupKey"       AS DepartmentGroupKey,
+    "ParentDepartmentGroupKey" AS ParentDepartmentGroupKey,
+    NULLIF(INITCAP(TRIM("DepartmentGroupName")), '') AS DepartmentGroupName
+  FROM DIMDEPARTMENTGROUP
+  WHERE "DepartmentGroupKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DepartmentGroupKey
+    ORDER BY IFF(DepartmentGroupName IS NOT NULL, 1, 0) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
+-- Optional: Show changes for the new table.
+SELECT * FROM DIMDEPARTMENTGROUP_CLEAN;
 
