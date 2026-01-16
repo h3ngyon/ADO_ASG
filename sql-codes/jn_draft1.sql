@@ -75,7 +75,7 @@ dedup AS (
 )
 SELECT * FROM dedup;
 
--- 3) Optional: quick validation outputs
+-- Validation outputs
 SELECT COUNT(*) AS ROWS_DIMEMPLOYEE FROM DIMEMPLOYEE;
 SELECT COUNT(*) AS ROWS_DIMEMPLOYEE_CLEAN FROM DIMEMPLOYEE_CLEAN; -- Verified, both Counts gives 296. 
 
