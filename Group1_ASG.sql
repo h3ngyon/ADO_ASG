@@ -9,7 +9,183 @@ SET AUTO_SUSPEND = 600;
 --- Cleansing of Tables (Handling NULL values, etc.) --- 
 
 
+CREATE OR REPLACE TABLE DIMACCOUNT_CLEAN AS
+WITH base AS (
+  SELECT
+    "AccountKey" AS AccountKey,
+    "ParentAccountKey"AS ParentAccountkey,
+    TRIM("AccountCodeAlternateKey")      AS AccountCodeAlternateKey,
+    TRIM("AccountDescription")           AS AccountDescription,
+    TRIM("AccountType")                  AS AccountType,
+    TRIM("Operator")                     AS Operator,
+    TRIM("CustomMembers")                AS CustomMembers,
+    TRIM("CustomMemberOptions")          AS CustomMemberOptions,
+    "ValueType" AS ValueType,
+  FROM DIMACCOUNT
+  WHERE AccountKey IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY AccountKey
+    ORDER BY
+      (IFF(AccountCodeAlternateKey IS NOT NULL AND AccountCodeAlternateKey <> '', 1, 0) +
+       IFF(AccountDescription IS NOT NULL AND AccountDescription <> '', 1, 0) +
+       IFF(AccountType IS NOT NULL AND AccountType <> '', 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
 
+CREATE OR REPLACE TABLE DIMCURRENCY_CLEAN AS
+WITH base AS (
+  SELECT
+    "CurrencyKey" AS CurrencyKey,
+    UPPER(TRIM("CurrencyAlternateKey")) AS CurrencyAlternateKey,
+    INITCAP(TRIM("CurrencyName"))       AS CurrencyName
+  FROM DIMCURRENCY
+  WHERE "CurrencyKey" IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY CurrencyKey
+    ORDER BY IFF(CurrencyName IS NOT NULL AND CurrencyName <> '', 1, 0) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
+
+
+CREATE OR REPLACE TABLE DIMCUSTOMER_CLEAN AS
+WITH base AS (
+  SELECT
+    "CustomerKey"                          AS CustomerKey,
+    "GeographyKey"                         AS GeographyKey,
+    NULLIF(TRIM("CustomerAlternateKey"), '') AS CustomerAlternateKey,
+
+    NULLIF(INITCAP(TRIM("Title")), '')     AS Title,
+    NULLIF(INITCAP(TRIM("FirstName")), '') AS FirstName,
+    NULLIF(INITCAP(TRIM("MiddleName")), '') AS MiddleName,
+    NULLIF(INITCAP(TRIM("LastName")), '')  AS LastName,
+    TRY_TO_BOOLEAN("NameStyle")            AS NameStyle,
+    NULLIF(INITCAP(TRIM("Suffix")), '')    AS Suffix,
+
+    TRY_TO_DATE("BirthDate")               AS BirthDate,
+
+    CASE
+      WHEN UPPER(TRIM("Gender")) IN ('M','MALE') THEN 'M'
+      WHEN UPPER(TRIM("Gender")) IN ('F','FEMALE') THEN 'F'
+      ELSE NULL
+    END                                    AS Gender,
+
+    CASE
+      WHEN UPPER(TRIM("MaritalStatus")) IN ('M','MARRIED') THEN 'Married'
+      WHEN UPPER(TRIM("MaritalStatus")) IN ('S','SINGLE') THEN 'Single'
+      ELSE NULL
+    END                                    AS MaritalStatus,
+
+    NULLIF(LOWER(TRIM("EmailAddress")), '') AS EmailAddress,
+    NULLIF(TRIM("Phone"), '')              AS Phone,
+
+    "YearlyIncome"                         AS YearlyIncome,
+    "TotalChildren"                        AS TotalChildren,
+    "NumberChildrenAtHome"                 AS NumberChildrenAtHome,
+    NULLIF(INITCAP(TRIM("EnglishEducation")), '')  AS EnglishEducation,
+    NULLIF(INITCAP(TRIM("SpanishEducation")), '')  AS SpanishEducation,
+    NULLIF(INITCAP(TRIM("FrenchEducation")), '')   AS FrenchEducation,
+    NULLIF(INITCAP(TRIM("EnglishOccupation")), '') AS EnglishOccupation,
+    NULLIF(INITCAP(TRIM("SpanishOccupation")), '') AS SpanishOccupation,
+    NULLIF(INITCAP(TRIM("FrenchOccupation")), '')  AS FrenchOccupation,
+    "HouseOwnerFlag"                       AS HouseOwnerFlag,
+    "NumberCarsOwned"                      AS NumberCarsOwned,
+
+    NULLIF(TRIM("AddressLine1"), '')       AS AddressLine1,
+    NULLIF(TRIM("AddressLine2"), '')       AS AddressLine2,
+
+    TRY_TO_DATE("DateFirstPurchase")       AS DateFirstPurchase,
+    NULLIF(TRIM("CommuteDistance"), '')    AS CommuteDistance
+  FROM DIMCUSTOMER
+  WHERE "CustomerKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY CustomerKey
+    ORDER BY
+      ( IFF(CustomerAlternateKey IS NOT NULL, 1, 0)
+      + IFF(FirstName IS NOT NULL, 1, 0)
+      + IFF(LastName IS NOT NULL, 1, 0)
+      + IFF(DateFirstPurchase IS NOT NULL, 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
+
+CREATE OR REPLACE TABLE DIMDATE_CLEAN AS
+WITH base AS (
+  SELECT
+    "DateKey"                           AS DateKey,
+    TRY_TO_DATE("FullDateAlternateKey") AS FullDateAlternateKey,
+    "DayNumberOfWeek"                   AS DayNumberOfWeek,
+    NULLIF(INITCAP(TRIM("EnglishDayNameOfWeek")), '') AS EnglishDayNameOfWeek,
+    NULLIF(INITCAP(TRIM("SpanishDayNameOfWeek")), '') AS SpanishDayNameOfWeek,
+    NULLIF(INITCAP(TRIM("FrenchDayNameOfWeek")), '')  AS FrenchDayNameOfWeek,
+    "DayNumberOfMonth"                  AS DayNumberOfMonth,
+    "DayNumberOfYear"                   AS DayNumberOfYear,
+    "WeekNumberOfYear"                  AS WeekNumberOfYear,
+    NULLIF(INITCAP(TRIM("EnglishMonthName")), '') AS EnglishMonthName,
+    NULLIF(INITCAP(TRIM("SpanishMonthName")), '') AS SpanishMonthName,
+    NULLIF(INITCAP(TRIM("FrenchMonthName")), '')  AS FrenchMonthName,
+    "MonthNumberOfYear"                 AS MonthNumberOfYear,
+    "CalendarQuarter"                   AS CalendarQuarter,
+    "CalendarYear"                      AS CalendarYear,
+    "CalendarSemester"                  AS CalendarSemester,
+    "FiscalQuarter"                     AS FiscalQuarter,
+    "FiscalYear"                        AS FiscalYear,
+    "FiscalSemester"                    AS FiscalSemester
+  FROM DIMDATE
+  WHERE "DateKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DateKey
+    ORDER BY
+      ( IFF(FullDateAlternateKey IS NOT NULL, 1, 0)
+      + IFF(EnglishDayNameOfWeek IS NOT NULL, 1, 0)
+      + IFF(EnglishMonthName IS NOT NULL, 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
+
+CREATE OR REPLACE TABLE DIMDEPARTMENTGROUP_CLEAN AS
+WITH base AS (
+  SELECT
+    "DepartmentGroupKey"       AS DepartmentGroupKey,
+    "ParentDepartmentGroupKey" AS ParentDepartmentGroupKey,
+    NULLIF(INITCAP(TRIM("DepartmentGroupName")), '') AS DepartmentGroupName
+  FROM DIMDEPARTMENTGROUP
+  WHERE "DepartmentGroupKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DepartmentGroupKey
+    ORDER BY IFF(DepartmentGroupName IS NOT NULL, 1, 0) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
 
 
 
