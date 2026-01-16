@@ -9,6 +9,184 @@ SET AUTO_SUSPEND = 600;
 --- Cleansing of Tables (Handling NULL values, etc.) --- 
 
 
+CREATE OR REPLACE TABLE DIMACCOUNT_CLEAN AS
+WITH base AS (
+  SELECT
+    "AccountKey" AS AccountKey,
+    "ParentAccountKey"AS ParentAccountkey,
+    TRIM("AccountCodeAlternateKey")      AS AccountCodeAlternateKey,
+    TRIM("AccountDescription")           AS AccountDescription,
+    TRIM("AccountType")                  AS AccountType,
+    TRIM("Operator")                     AS Operator,
+    TRIM("CustomMembers")                AS CustomMembers,
+    TRIM("CustomMemberOptions")          AS CustomMemberOptions,
+    "ValueType" AS ValueType,
+  FROM DIMACCOUNT
+  WHERE AccountKey IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY AccountKey
+    ORDER BY
+      (IFF(AccountCodeAlternateKey IS NOT NULL AND AccountCodeAlternateKey <> '', 1, 0) +
+       IFF(AccountDescription IS NOT NULL AND AccountDescription <> '', 1, 0) +
+       IFF(AccountType IS NOT NULL AND AccountType <> '', 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
+
+CREATE OR REPLACE TABLE DIMCURRENCY_CLEAN AS
+WITH base AS (
+  SELECT
+    "CurrencyKey" AS CurrencyKey,
+    UPPER(TRIM("CurrencyAlternateKey")) AS CurrencyAlternateKey,
+    INITCAP(TRIM("CurrencyName"))       AS CurrencyName
+  FROM DIMCURRENCY
+  WHERE "CurrencyKey" IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY CurrencyKey
+    ORDER BY IFF(CurrencyName IS NOT NULL AND CurrencyName <> '', 1, 0) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
+
+
+CREATE OR REPLACE TABLE DIMCUSTOMER_CLEAN AS
+WITH base AS (
+  SELECT
+    "CustomerKey"                          AS CustomerKey,
+    "GeographyKey"                         AS GeographyKey,
+    NULLIF(TRIM("CustomerAlternateKey"), '') AS CustomerAlternateKey,
+
+    NULLIF(INITCAP(TRIM("Title")), '')     AS Title,
+    NULLIF(INITCAP(TRIM("FirstName")), '') AS FirstName,
+    NULLIF(INITCAP(TRIM("MiddleName")), '') AS MiddleName,
+    NULLIF(INITCAP(TRIM("LastName")), '')  AS LastName,
+    TRY_TO_BOOLEAN("NameStyle")            AS NameStyle,
+    NULLIF(INITCAP(TRIM("Suffix")), '')    AS Suffix,
+
+    TRY_TO_DATE("BirthDate")               AS BirthDate,
+
+    CASE
+      WHEN UPPER(TRIM("Gender")) IN ('M','MALE') THEN 'M'
+      WHEN UPPER(TRIM("Gender")) IN ('F','FEMALE') THEN 'F'
+      ELSE NULL
+    END                                    AS Gender,
+
+    CASE
+      WHEN UPPER(TRIM("MaritalStatus")) IN ('M','MARRIED') THEN 'Married'
+      WHEN UPPER(TRIM("MaritalStatus")) IN ('S','SINGLE') THEN 'Single'
+      ELSE NULL
+    END                                    AS MaritalStatus,
+
+    NULLIF(LOWER(TRIM("EmailAddress")), '') AS EmailAddress,
+    NULLIF(TRIM("Phone"), '')              AS Phone,
+
+    "YearlyIncome"                         AS YearlyIncome,
+    "TotalChildren"                        AS TotalChildren,
+    "NumberChildrenAtHome"                 AS NumberChildrenAtHome,
+    NULLIF(INITCAP(TRIM("EnglishEducation")), '')  AS EnglishEducation,
+    NULLIF(INITCAP(TRIM("SpanishEducation")), '')  AS SpanishEducation,
+    NULLIF(INITCAP(TRIM("FrenchEducation")), '')   AS FrenchEducation,
+    NULLIF(INITCAP(TRIM("EnglishOccupation")), '') AS EnglishOccupation,
+    NULLIF(INITCAP(TRIM("SpanishOccupation")), '') AS SpanishOccupation,
+    NULLIF(INITCAP(TRIM("FrenchOccupation")), '')  AS FrenchOccupation,
+    "HouseOwnerFlag"                       AS HouseOwnerFlag,
+    "NumberCarsOwned"                      AS NumberCarsOwned,
+
+    NULLIF(TRIM("AddressLine1"), '')       AS AddressLine1,
+    NULLIF(TRIM("AddressLine2"), '')       AS AddressLine2,
+
+    TRY_TO_DATE("DateFirstPurchase")       AS DateFirstPurchase,
+    NULLIF(TRIM("CommuteDistance"), '')    AS CommuteDistance
+  FROM DIMCUSTOMER
+  WHERE "CustomerKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY CustomerKey
+    ORDER BY
+      ( IFF(CustomerAlternateKey IS NOT NULL, 1, 0)
+      + IFF(FirstName IS NOT NULL, 1, 0)
+      + IFF(LastName IS NOT NULL, 1, 0)
+      + IFF(DateFirstPurchase IS NOT NULL, 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
+
+CREATE OR REPLACE TABLE DIMDATE_CLEAN AS
+WITH base AS (
+  SELECT
+    "DateKey"                           AS DateKey,
+    TRY_TO_DATE("FullDateAlternateKey") AS FullDateAlternateKey,
+    "DayNumberOfWeek"                   AS DayNumberOfWeek,
+    NULLIF(INITCAP(TRIM("EnglishDayNameOfWeek")), '') AS EnglishDayNameOfWeek,
+    NULLIF(INITCAP(TRIM("SpanishDayNameOfWeek")), '') AS SpanishDayNameOfWeek,
+    NULLIF(INITCAP(TRIM("FrenchDayNameOfWeek")), '')  AS FrenchDayNameOfWeek,
+    "DayNumberOfMonth"                  AS DayNumberOfMonth,
+    "DayNumberOfYear"                   AS DayNumberOfYear,
+    "WeekNumberOfYear"                  AS WeekNumberOfYear,
+    NULLIF(INITCAP(TRIM("EnglishMonthName")), '') AS EnglishMonthName,
+    NULLIF(INITCAP(TRIM("SpanishMonthName")), '') AS SpanishMonthName,
+    NULLIF(INITCAP(TRIM("FrenchMonthName")), '')  AS FrenchMonthName,
+    "MonthNumberOfYear"                 AS MonthNumberOfYear,
+    "CalendarQuarter"                   AS CalendarQuarter,
+    "CalendarYear"                      AS CalendarYear,
+    "CalendarSemester"                  AS CalendarSemester,
+    "FiscalQuarter"                     AS FiscalQuarter,
+    "FiscalYear"                        AS FiscalYear,
+    "FiscalSemester"                    AS FiscalSemester
+  FROM DIMDATE
+  WHERE "DateKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DateKey
+    ORDER BY
+      ( IFF(FullDateAlternateKey IS NOT NULL, 1, 0)
+      + IFF(EnglishDayNameOfWeek IS NOT NULL, 1, 0)
+      + IFF(EnglishMonthName IS NOT NULL, 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
+
+CREATE OR REPLACE TABLE DIMDEPARTMENTGROUP_CLEAN AS
+WITH base AS (
+  SELECT
+    "DepartmentGroupKey"       AS DepartmentGroupKey,
+    "ParentDepartmentGroupKey" AS ParentDepartmentGroupKey,
+    NULLIF(INITCAP(TRIM("DepartmentGroupName")), '') AS DepartmentGroupName
+  FROM DIMDEPARTMENTGROUP
+  WHERE "DepartmentGroupKey" IS NOT NULL
+),
+dedup_pk AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY DepartmentGroupKey
+    ORDER BY IFF(DepartmentGroupName IS NOT NULL, 1, 0) DESC
+  ) = 1
+)
+SELECT *
+FROM dedup_pk;
+
 
 
 
@@ -50,7 +228,7 @@ GROUP BY "EmployeeNationalIDAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DIMEMPLOYEE
-CREATE OR REPLACE TABLE "DIMEMPLOYEE_CLEAN" AS
+CREATE OR REPLACE TABLE DIMEMPLOYEE_CLEAN AS
 WITH base AS (
   SELECT
     "EmployeeKey" AS EmployeeKey,
@@ -145,7 +323,7 @@ GROUP BY 1,2,3
 HAVING COUNT(*) > 1;
 
 -- Cleanse DIMGEOGRAPHY
-CREATE OR REPLACE TABLE "DIMGEOGRAPHY_CLEAN" AS
+CREATE OR REPLACE TABLE DIMGEOGRAPHY_CLEAN AS
 WITH base AS (
   SELECT
     "GeographyKey" AS GeographyKey,
@@ -229,7 +407,7 @@ GROUP BY 1
 HAVING COUNT(*) > 1;
 
 -- Cleanse DIMORGANIZATION
-CREATE OR REPLACE TABLE "DIMORGANIZATION_CLEAN" AS
+CREATE OR REPLACE TABLE DIMORGANIZATION_CLEAN AS
 WITH base AS (
   SELECT
     "OrganizationKey" AS OrganizationKey,
@@ -299,7 +477,7 @@ GROUP BY "ProductAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DIMPRODUCT
-CREATE OR REPLACE TABLE "DIMPRODUCT_CLEAN" AS
+CREATE OR REPLACE TABLE DIMPRODUCT_CLEAN AS
 WITH base AS (
   SELECT
     "ProductKey" AS ProductKey,
@@ -447,7 +625,7 @@ GROUP BY "ProductCategoryAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DIMPRODUCTCATEGORY
-CREATE OR REPLACE TABLE "DIMPRODUCTCATEGORY_CLEAN" AS
+CREATE OR REPLACE TABLE DIMPRODUCTCATEGORY_CLEAN AS
 WITH base AS (
   SELECT
     "ProductCategoryKey" AS ProductCategoryKey,
@@ -496,8 +674,138 @@ LIMIT 25;
 
 --------------------
 
+------------------------------------------------------------
+-- Cleaned Prospective Buyer
+CREATE OR REPLACE TABLE PROSPECTIVEBUYER_CLEAN AS
+SELECT
+    "ProspectiveBuyerKey" AS PROSPECTIVEBUYER_KEY,
+    "ProspectAlternateKey" AS PROSPECTALTERNATEKEY,
+    TRIM("FirstName") AS FIRSTNAME,
+    COALESCE(TRIM("MiddleName"), '') AS MIDDLENAME,
+    TRIM("LastName") AS LAST_NAME,
+    TRY_TO_DATE("BirthDate") AS BIRTHDATE,
+    CASE 
+        WHEN "MaritalStatus" = 'M' THEN 'Married'
+        WHEN "MaritalStatus" = 'S' THEN 'Single'
+        ELSE 'Unknown'
+    END AS MARITALSTATUS,
+    CASE 
+        WHEN "Gender" = 'M' THEN 'Male'
+        WHEN "Gender" = 'F' THEN 'Female'
+        ELSE 'Other'
+    END AS GENDER,
+    LOWER(TRIM("EmailAddress")) AS EMAILADDRESS,
+    "YearlyIncome" AS YEARLYINCOME,
+    "TotalChildren" AS TOTALCHILDREN,
+    "NumberChildrenAtHome" AS CHILDRENATHOME,
+    "Education" AS EDUCATION,
+    "Occupation" AS OCCUPATION,
+    "HouseOwnerFlag"::BOOLEAN AS ISHOUSEOWNER,
+    "NumberCarsOwned" AS CARSOWNED,
+    TRIM("AddressLine1") AS ADDRESSLINE1,
+    COALESCE(TRIM("AddressLine2"), '') AS ADDRESSLINE2,
+    "City" AS CITY,
+    "StateProvinceCode" AS STATEPROVINCECODE,
+    "PostalCode" AS POSTALCODE,
+    "Phone" AS PHONE
+FROM ProspectiveBuyer
+QUALIFY ROW_NUMBER() OVER (PARTITION BY "ProspectiveBuyerKey" ORDER BY "BirthDate" DESC) = 1;
 
+SELECT * FROM PROSPECTIVEBUYER_CLEAN;
 
+-- Cleaned Fact Survery Response 
+
+CREATE OR REPLACE TABLE FACTSURVEYRESPONSE_CLEAN AS
+SELECT
+    "SurveyResponseKey" AS SURVEYRESPONSEKEY,
+    TRY_TO_DATE(TO_VARCHAR("DateKey"), 'YYYYMMDD') AS SURVEYDATE,
+    "CustomerKey" AS CUSTOMERKEY,
+    "ProductCategoryKey" AS PRODUCTCATEGORYKEY,
+    COALESCE(TRIM("EnglishProductCategoryName"), '') AS PRODUCTCATEGORY,
+    "ProductSubcategoryKey" AS PRODUCTSUBCATEGORYKEY,
+    COALESCE(TRIM("EnglishProductSubcategoryName"), '') AS PRODUCTSUBCATEGORY
+FROM FactSurveyResponse;
+SELECT * FROM FACTSURVEYRESPONSE_CLEAN;
+
+-- Cleaned Fact Sales Quota
+
+CREATE OR REPLACE TABLE FACTSALESQUOTA_CLEAN AS
+SELECT
+    "SalesQuotaKey" AS SALESQUOTAKEY,
+    "EmployeeKey" AS EMPLOYEEKEY,
+    
+    -- Convert Integer type to Date type
+    TRY_TO_DATE(TO_VARCHAR("DateKey"), 'YYYYMMDD') AS QUOTADATE,  
+    
+    "CalendarYear" AS CALENDARYEAR,
+    "CalendarQuarter" AS CALENDARQUARTER,
+    
+    -- Change data type from FLOAT to DECIMAL
+    CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SALESAMOUNTQUOTA
+FROM FactSalesQuota;
+SELECT * FROM FACTSALESQUOTA_CLEAN;
+
+--  Clean Fact Reseller Sales
+
+CREATE OR REPLACE TABLE FACTSALESQUOTA_CLEAN AS
+SELECT
+    "SalesQuotaKey" AS SalesQuotaKey,
+    "EmployeeKey" AS EmployeeKey,
+    TRY_TO_DATE(TO_VARCHAR("DateKey"), 'YYYYMMDD') AS QuotaDate,
+    "CalendarYear" AS CalendarYear,
+    "CalendarQuarter" AS CalendarQuarter,
+    CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SalesAmountQuota
+FROM FactSalesQuota;
+
+SELECT * FROM FACTSALESQUOTA_CLEAN;
+
+-- Clean Fact Internet Sales Reason
+CREATE OR REPLACE TABLE FACTINTERNETSALESREASON_CLEAN AS
+SELECT DISTINCT
+    TRIM("SalesOrderNumber") AS SalesOrderNumber,
+    "SalesOrderLineNumber" AS SalesOrderLineNumber,
+    "SalesReasonKey" AS SalesReasonKey
+FROM FactInternetSalesReason;
+
+SELECT * FROM FACTINTERNETSALESREASON_CLEAN;
+
+-- Clean Fact Internet Sales
+CREATE OR REPLACE TABLE FACTINTERNETSALES_CLEAN AS
+SELECT
+    "ProductKey" AS ProductKey,
+
+    TRY_TO_DATE(TO_VARCHAR("OrderDateKey"), 'YYYYMMDD') AS OrderDate,
+    TRY_TO_DATE(TO_VARCHAR("DueDateKey"), 'YYYYMMDD') AS DueDate,
+    TRY_TO_DATE(TO_VARCHAR("ShipDateKey"), 'YYYYMMDD') AS ShipDate,
+    
+    "CustomerKey" AS CustomerKey,
+    "PromotionKey" AS PromotionKey,
+    "CurrencyKey" AS CurrencyKey,
+    "SalesTerritoryKey" AS SalesTerritoryKey,
+    
+    "SalesOrderNumber" AS SalesOrderNumber,
+    "SalesOrderLineNumber" AS SalesOrderLineNumber,
+    "RevisionNumber" AS RevisionNumber,
+    "OrderQuantity" AS OrderQuantity,
+     
+    -- Change data type from FLOAT to DECIMAL
+    CAST("UnitPrice" AS DECIMAL(18,4)) AS UnitPrice,
+    CAST("ExtendedAmount" AS DECIMAL(18,4)) AS ExtendedAmount,
+    CAST("UnitPriceDiscountPct" AS DECIMAL(18,4)) AS UnitPriceDiscountPct,
+    CAST("DiscountAmount" AS DECIMAL(18,4)) AS DiscountAmount,
+    CAST("ProductStandardCost" AS DECIMAL(18,4)) AS ProductStandardCost,
+    CAST("TotalProductCost" AS DECIMAL(18,4)) AS TotalProductCost,
+    CAST("SalesAmount" AS DECIMAL(18,4)) AS SalesAmount,
+    
+    CAST("TaxAmt" AS DECIMAL(18,4)) AS TaxAmount,
+    CAST("Freight" AS DECIMAL(18,4)) AS Freight,
+    
+    -- Carrier Tracking Number and Customer PO Number 
+    COALESCE("CarrierTrackingNumber", '') AS CarrierTrackingNumber,
+    COALESCE("CustomerPONumber", '') AS CustomerPONumber
+FROM FactInternetSales;
+
+SELECT * FROM FACTINTERNETSALES_CLEAN;
 
 
 
