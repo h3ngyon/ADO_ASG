@@ -522,10 +522,152 @@ dedup AS (
 )
 SELECT * FROM dedup;
 
+----- [DimProductSubcategory] -----
+-- Cleanse DimReseller
+CREATE OR REPLACE TABLE DimReseller_Cleaned AS
+WITH base AS (
+  SELECT
+    "ResellerKey" AS ResellerKey,
+    "GeographyKey" AS GeographyKey,
+    TRIM("ResellerAlternateKey") AS ResellerAlternateKey,
+    TRIM("Phone") AS Phone,
+    TRIM("BusinessType") AS BusinessType,
+    TRIM("ResellerName") AS ResellerName,
+    "NumberEmployees" AS NumberEmployees,
+    TRIM("OrderFrequency") AS OrderFrequency,
 
+    -- replace NULL -> 0 for Order Metrics
+    COALESCE("OrderMonth", 0) AS OrderMonth,
+    COALESCE("FirstOrderYear", 0) AS FirstOrderYear,
+    COALESCE("LastOrderYear", 0) AS LastOrderYear,
 
+    TRIM("ProductLine") AS ProductLine,
+    TRIM("AddressLine1") AS AddressLine1,
 
+    -- replace NULL -> '' (Empty String) for AddressLine2
+    COALESCE(TRIM("AddressLine2"), '') AS AddressLine2,
 
+    "AnnualSales" AS AnnualSales,
+    TRIM("BankName") AS BankName,
+
+    -- replace NULL -> 0 for Payment Logic
+    COALESCE("MinPaymentType", 0) AS MinPaymentType,
+    COALESCE("MinPaymentAmount", 0) AS MinPaymentAmount,
+
+    "AnnualRevenue" AS AnnualRevenue,
+    "YearOpened" AS YearOpened
+
+  FROM DimReseller
+  WHERE "ResellerKey" IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY ResellerKey
+    ORDER BY
+      (IFF(ResellerAlternateKey IS NOT NULL AND ResellerAlternateKey <> '', 1, 0) +
+       IFF(ResellerName IS NOT NULL AND ResellerName <> '', 1, 0) +
+       IFF(Phone IS NOT NULL AND Phone <> '', 1, 0) +
+       IFF(AddressLine1 IS NOT NULL AND AddressLine1 <> '', 1, 0) +
+       IFF(BankName IS NOT NULL AND BankName <> '', 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
+
+----- [DimPromotion] -----
+-- Cleanse DimPromotion
+CREATE OR REPLACE TABLE DimPromotion_Cleaned AS
+WITH base AS (
+  SELECT
+    "PromotionKey" AS PromotionKey,
+    "PromotionAlternateKey" AS PromotionAlternateKey,
+    TRIM("EnglishPromotionName") AS EnglishPromotionName,
+    TRIM("SpanishPromotionName") AS SpanishPromotionName,
+    TRIM("FrenchPromotionName") AS FrenchPromotionName,
+    "DiscountPct" AS DiscountPct,
+    TRIM("EnglishPromotionType") AS EnglishPromotionType,
+    TRIM("SpanishPromotionType") AS SpanishPromotionType,
+    TRIM("FrenchPromotionType") AS FrenchPromotionType,
+    TRIM("EnglishPromotionCategory") AS EnglishPromotionCategory,
+    TRIM("SpanishPromotionCategory") AS SpanishPromotionCategory,
+    TRIM("FrenchPromotionCategory") AS FrenchPromotionCategory,
+    "StartDate" AS StartDate,
+    "EndDate" AS EndDate,
+    "MinQty" AS MinQty,
+
+    -- replace NULL -> 999999 (No Limit) for MaxQty
+    COALESCE("MaxQty", 999999) AS MaxQty
+
+  FROM DimPromotion
+  WHERE "PromotionKey" IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY PromotionKey
+    ORDER BY
+      (IFF(EnglishPromotionName IS NOT NULL AND EnglishPromotionName <> '', 1, 0) +
+       IFF(EnglishPromotionType IS NOT NULL AND EnglishPromotionType <> '', 1, 0) +
+       IFF(EnglishPromotionCategory IS NOT NULL AND EnglishPromotionCategory <> '', 1, 0) +
+       IFF(DiscountPct IS NOT NULL, 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
+
+----- [DimSalesReason] -----
+-- Cleanse DimSalesReason
+CREATE OR REPLACE TABLE DimSalesReason_Cleaned AS
+WITH base AS (
+  SELECT
+    "SalesReasonKey" AS SalesReasonKey,
+    "SalesReasonAlternateKey" AS SalesReasonAlternateKey,
+    TRIM("SalesReasonName") AS SalesReasonName,
+    TRIM("SalesReasonReasonType") AS SalesReasonReasonType
+  FROM DimSalesReason
+  WHERE "SalesReasonKey" IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY SalesReasonKey
+    ORDER BY
+      (IFF(SalesReasonName IS NOT NULL AND SalesReasonName <> '', 1, 0) +
+       IFF(SalesReasonReasonType IS NOT NULL AND SalesReasonReasonType <> '', 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
+
+----- [DimSalesTerritory] -----
+-- Cleanse DimSalesTerritory
+CREATE OR REPLACE TABLE DimSalesTerritory_Cleaned AS
+WITH base AS (
+  SELECT
+    "SalesTerritoryKey" AS SalesTerritoryKey,
+    "SalesTerritoryAlternateKey" AS SalesTerritoryAlternateKey,
+    TRIM("SalesTerritoryRegion") AS SalesTerritoryRegion,
+    TRIM("SalesTerritoryCountry") AS SalesTerritoryCountry,
+    TRIM("SalesTerritoryGroup") AS SalesTerritoryGroup
+  FROM DimSalesTerritory
+  WHERE "SalesTerritoryKey" IS NOT NULL
+),
+dedup AS (
+  SELECT *
+  FROM base
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY SalesTerritoryKey
+    ORDER BY
+      (IFF(SalesTerritoryRegion IS NOT NULL AND SalesTerritoryRegion <> '', 1, 0) +
+       IFF(SalesTerritoryCountry IS NOT NULL AND SalesTerritoryCountry <> '', 1, 0)
+      ) DESC
+  ) = 1
+)
+SELECT * FROM dedup;
 
 
 ------------------------------------------------------------
