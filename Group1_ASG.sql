@@ -496,8 +496,138 @@ LIMIT 25;
 
 --------------------
 
+------------------------------------------------------------
+-- Cleaned Prospective Buyer
+CREATE OR REPLACE TABLE PROSPECTIVEBUYER_CLEAN AS
+SELECT
+    "ProspectiveBuyerKey" AS PROSPECTIVEBUYER_KEY,
+    "ProspectAlternateKey" AS PROSPECTALTERNATEKEY,
+    TRIM("FirstName") AS FIRSTNAME,
+    COALESCE(TRIM("MiddleName"), '') AS MIDDLENAME,
+    TRIM("LastName") AS LAST_NAME,
+    TRY_TO_DATE("BirthDate") AS BIRTHDATE,
+    CASE 
+        WHEN "MaritalStatus" = 'M' THEN 'Married'
+        WHEN "MaritalStatus" = 'S' THEN 'Single'
+        ELSE 'Unknown'
+    END AS MARITALSTATUS,
+    CASE 
+        WHEN "Gender" = 'M' THEN 'Male'
+        WHEN "Gender" = 'F' THEN 'Female'
+        ELSE 'Other'
+    END AS GENDER,
+    LOWER(TRIM("EmailAddress")) AS EMAILADDRESS,
+    "YearlyIncome" AS YEARLYINCOME,
+    "TotalChildren" AS TOTALCHILDREN,
+    "NumberChildrenAtHome" AS CHILDRENATHOME,
+    "Education" AS EDUCATION,
+    "Occupation" AS OCCUPATION,
+    "HouseOwnerFlag"::BOOLEAN AS ISHOUSEOWNER,
+    "NumberCarsOwned" AS CARSOWNED,
+    TRIM("AddressLine1") AS ADDRESSLINE1,
+    COALESCE(TRIM("AddressLine2"), '') AS ADDRESSLINE2,
+    "City" AS CITY,
+    "StateProvinceCode" AS STATEPROVINCECODE,
+    "PostalCode" AS POSTALCODE,
+    "Phone" AS PHONE
+FROM ProspectiveBuyer
+QUALIFY ROW_NUMBER() OVER (PARTITION BY "ProspectiveBuyerKey" ORDER BY "BirthDate" DESC) = 1;
 
+SELECT * FROM PROSPECTIVEBUYER_CLEAN;
 
+-- Cleaned Fact Survery Response 
+
+CREATE OR REPLACE TABLE FACTSURVEYRESPONSE_CLEAN AS
+SELECT
+    "SurveyResponseKey" AS SURVEYRESPONSEKEY,
+    TRY_TO_DATE(TO_VARCHAR("DateKey"), 'YYYYMMDD') AS SURVEYDATE,
+    "CustomerKey" AS CUSTOMERKEY,
+    "ProductCategoryKey" AS PRODUCTCATEGORYKEY,
+    COALESCE(TRIM("EnglishProductCategoryName"), '') AS PRODUCTCATEGORY,
+    "ProductSubcategoryKey" AS PRODUCTSUBCATEGORYKEY,
+    COALESCE(TRIM("EnglishProductSubcategoryName"), '') AS PRODUCTSUBCATEGORY
+FROM FactSurveyResponse;
+SELECT * FROM FACTSURVEYRESPONSE_CLEAN;
+
+-- Cleaned Fact Sales Quota
+
+CREATE OR REPLACE TABLE FACTSALESQUOTA_CLEAN AS
+SELECT
+    "SalesQuotaKey" AS SALESQUOTAKEY,
+    "EmployeeKey" AS EMPLOYEEKEY,
+    
+    -- Convert Integer type to Date type
+    TRY_TO_DATE(TO_VARCHAR("DateKey"), 'YYYYMMDD') AS QUOTADATE,  
+    
+    "CalendarYear" AS CALENDARYEAR,
+    "CalendarQuarter" AS CALENDARQUARTER,
+    
+    -- Change data type from FLOAT to DECIMAL
+    CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SALESAMOUNTQUOTA
+FROM FactSalesQuota;
+SELECT * FROM FACTSALESQUOTA_CLEAN;
+
+--  Clean Fact Reseller Sales
+
+CREATE OR REPLACE TABLE FACTSALESQUOTA_CLEAN AS
+SELECT
+    "SalesQuotaKey" AS SalesQuotaKey,
+    "EmployeeKey" AS EmployeeKey,
+    TRY_TO_DATE(TO_VARCHAR("DateKey"), 'YYYYMMDD') AS QuotaDate,
+    "CalendarYear" AS CalendarYear,
+    "CalendarQuarter" AS CalendarQuarter,
+    CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SalesAmountQuota
+FROM FactSalesQuota;
+
+SELECT * FROM FACTSALESQUOTA_CLEAN;
+
+-- Clean Fact Internet Sales Reason
+CREATE OR REPLACE TABLE FACTINTERNETSALESREASON_CLEAN AS
+SELECT DISTINCT
+    TRIM("SalesOrderNumber") AS SalesOrderNumber,
+    "SalesOrderLineNumber" AS SalesOrderLineNumber,
+    "SalesReasonKey" AS SalesReasonKey
+FROM FactInternetSalesReason;
+
+SELECT * FROM FACTINTERNETSALESREASON_CLEAN;
+
+-- Clean Fact Internet Sales
+CREATE OR REPLACE TABLE FACTINTERNETSALES_CLEAN AS
+SELECT
+    "ProductKey" AS ProductKey,
+
+    TRY_TO_DATE(TO_VARCHAR("OrderDateKey"), 'YYYYMMDD') AS OrderDate,
+    TRY_TO_DATE(TO_VARCHAR("DueDateKey"), 'YYYYMMDD') AS DueDate,
+    TRY_TO_DATE(TO_VARCHAR("ShipDateKey"), 'YYYYMMDD') AS ShipDate,
+    
+    "CustomerKey" AS CustomerKey,
+    "PromotionKey" AS PromotionKey,
+    "CurrencyKey" AS CurrencyKey,
+    "SalesTerritoryKey" AS SalesTerritoryKey,
+    
+    "SalesOrderNumber" AS SalesOrderNumber,
+    "SalesOrderLineNumber" AS SalesOrderLineNumber,
+    "RevisionNumber" AS RevisionNumber,
+    "OrderQuantity" AS OrderQuantity,
+     
+    -- Change data type from FLOAT to DECIMAL
+    CAST("UnitPrice" AS DECIMAL(18,4)) AS UnitPrice,
+    CAST("ExtendedAmount" AS DECIMAL(18,4)) AS ExtendedAmount,
+    CAST("UnitPriceDiscountPct" AS DECIMAL(18,4)) AS UnitPriceDiscountPct,
+    CAST("DiscountAmount" AS DECIMAL(18,4)) AS DiscountAmount,
+    CAST("ProductStandardCost" AS DECIMAL(18,4)) AS ProductStandardCost,
+    CAST("TotalProductCost" AS DECIMAL(18,4)) AS TotalProductCost,
+    CAST("SalesAmount" AS DECIMAL(18,4)) AS SalesAmount,
+    
+    CAST("TaxAmt" AS DECIMAL(18,4)) AS TaxAmount,
+    CAST("Freight" AS DECIMAL(18,4)) AS Freight,
+    
+    -- Carrier Tracking Number and Customer PO Number 
+    COALESCE("CarrierTrackingNumber", '') AS CarrierTrackingNumber,
+    COALESCE("CustomerPONumber", '') AS CustomerPONumber
+FROM FactInternetSales;
+
+SELECT * FROM FACTINTERNETSALES_CLEAN;
 
 
 
