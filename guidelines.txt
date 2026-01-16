@@ -1,0 +1,2 @@
+New tables naming format: [TableName]_CLEAN
+New tables should not have their table name in quotation marks
