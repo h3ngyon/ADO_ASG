@@ -1,8 +1,35 @@
-USE WAREHOUSE CATFISH_WH;
+------------------------------------------------------------
+USE WAREHOUSE FERRET_WH;
 USE DATABASE GRP1_ASG;
 USE SCHEMA ASG;
-ALTER WAREHOUSE CATFISH_WH
+ALTER WAREHOUSE FERRET_WH
 SET AUTO_SUSPEND = 600;
+
+
+--- Cleansing of Tables (Handling NULL values, etc.) --- 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ----- [DIMEMPLOYEE] -----
 -- Checking of NULL values for PK
@@ -478,3 +505,14 @@ LIMIT 25;
 
 
 
+
+
+
+
+
+
+
+
+
+
+------------------------------------------------------------
