@@ -49,7 +49,7 @@ ORDER BY "AccountCodeAlternateKey";
 -- to keep the row with the most information. It also standardises the text(trims it.)
 --Creates new table "DIMACCOUNT_CLEAN" to store the cleaned data.
 
-CREATE OR REPLACE TABLE "DIMACCOUNT_CLEAN" AS
+CREATE OR REPLACE TABLE DIMACCOUNT_CLEAN AS
 WITH base AS (
   SELECT
     "AccountKey" AS AccountKey,
@@ -80,6 +80,10 @@ SELECT * FROM dedup;
 
 -- Optional: Show changes for the new table.
 SELECT * FROM DIMACCOUNT_CLEAN;
+
+DROP TABLE "DIMACCOUNT_CLEAN";
+
+
 
 -- DIMACCOUNT is marked as cleaned after the aforementioned steps.
 
