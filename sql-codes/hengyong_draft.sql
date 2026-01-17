@@ -19,30 +19,11 @@ SELECT * FROM FACTFINANCE LIMIT 10;
 
 -- Create file format
 ---------------------------
-CREATE OR REPLACE FILE FORMAT csv_ff_header
-  TYPE = CSV
-  FIELD_DELIMITER = ','
-  PARSE_HEADER = TRUE
-  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
-  TRIM_SPACE = TRUE
-  NULL_IF = ('NULL', '');
+ls @asg_stage;
 
-CREATE OR REPLACE FILE FORMAT csv_ff
-  TYPE = CSV
-  FIELD_DELIMITER = ','
-  SKIP_HEADER = 1
-  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
-  TRIM_SPACE = TRUE
-  NULL_IF = ('NULL', '');
-
-
-
-
-ls @asg_stage_cleaned;
 
 -- DIMSCENARIO_CLEANED
 --------------------------------
--- creates table in stage as .gz format
 SELECT * from DIMSCENARIO limit 10;
 
 CREATE OR REPLACE TABLE DIMSCENARIO_CLEAN AS
