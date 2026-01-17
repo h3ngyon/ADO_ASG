@@ -5,22 +5,6 @@ ALTER WAREHOUSE CATFISH_WH
 SET AUTO_SUSPEND = 600;
 
 ----- [DIMEMPLOYEE] -----
--- Checking of NULL values for PK
-SELECT COUNT(*) AS EmployeeKey_Null_Count
-FROM DIMEMPLOYEE
-WHERE "EmployeeKey" IS NULL;
-
--- Checking of duplicate PK
-SELECT "EmployeeKey", COUNT(*) AS Count
-FROM DIMEMPLOYEE
-GROUP BY "EmployeeKey"
-HAVING COUNT(*) > 1;
-
--- Duplicate Business Key checks.
-SELECT "EmployeeNationalIDAlternateKey", COUNT(*) AS Count
-FROM DIMEMPLOYEE
-GROUP BY "EmployeeNationalIDAlternateKey"
-HAVING COUNT(*) > 1;
 
 -- Cleanse DIMEMPLOYEE
 CREATE OR REPLACE TABLE DIMEMPLOYEE_CLEAN AS
@@ -75,47 +59,11 @@ dedup AS (
 )
 SELECT * FROM dedup;
 
--- Validation outputs
-SELECT COUNT(*) AS ROWS_DIMEMPLOYEE FROM DIMEMPLOYEE;
-SELECT COUNT(*) AS ROWS_DIMEMPLOYEE_CLEAN FROM DIMEMPLOYEE_CLEAN; -- Verified, both Counts gives 296. 
-
--- Verify transformations
-SELECT
-  EmployeeKey,
-  FirstName, MiddleName, LastName,
-  Status,
-  EndDate,
-  ParentEmployeeNationalIDAlternateKey
-FROM DIMEMPLOYEE_CLEAN
-ORDER BY EmployeeKey
-LIMIT 25;
-
 --------------------
 
 
 
 ----- [DIMGEOGRAPHY] -----
--- Checking of NULL values for PK
-SELECT COUNT(*) AS GeographyKey_Null_Count
-FROM DIMGEOGRAPHY
-WHERE "GeographyKey" IS NULL;
-
--- Checking of duplicate PK
-SELECT "GeographyKey", COUNT(*) AS Count
-FROM DIMGEOGRAPHY
-GROUP BY "GeographyKey"
-HAVING COUNT(*) > 1;
-
--- Duplicate Business Key checks (no explicit AlternateKey in this table)
--- Use a practical natural key combo check: City + StateProvinceCode + PostalCode
-SELECT
-  TRIM("City") AS City,
-  TRIM("StateProvinceCode") AS StateProvinceCode,
-  TRIM("PostalCode") AS PostalCode,
-  COUNT(*) AS Count
-FROM DIMGEOGRAPHY
-GROUP BY 1,2,3
-HAVING COUNT(*) > 1;
 
 -- Cleanse DIMGEOGRAPHY
 CREATE OR REPLACE TABLE DIMGEOGRAPHY_CLEAN AS
@@ -169,37 +117,11 @@ dedup AS (
 )
 SELECT * FROM dedup;
 
--- Validation outputs
-SELECT COUNT(*) AS ROWS_DIMGEOGRAPHY FROM DIMGEOGRAPHY;
-SELECT COUNT(*) AS ROWS_DIMGEOGRAPHY_CLEAN FROM DIMGEOGRAPHY_CLEAN; -- Verified, both Counts at 655
-
--- Verify transformations
-SELECT *
-FROM DIMGEOGRAPHY_CLEAN
-ORDER BY GeographyKey
-LIMIT 25;
 
 ---------------------
 
 
 ----- [DIMORGANIZATION] -----
--- Checking of NULL values for PK
-SELECT COUNT(*) AS OrganizationKey_Null_Count
-FROM DIMORGANIZATION
-WHERE "OrganizationKey" IS NULL;
-
--- Checking of duplicate PK
-SELECT "OrganizationKey", COUNT(*) AS Count
-FROM DIMORGANIZATION
-GROUP BY "OrganizationKey"
-HAVING COUNT(*) > 1;
-
--- Duplicate Business Key checks (no AlternateKey provided)
--- Check duplicates on OrganizationName as a practical business identifier
-SELECT TRIM("OrganizationName") AS OrganizationName, COUNT(*) AS Count
-FROM DIMORGANIZATION
-GROUP BY 1
-HAVING COUNT(*) > 1;
 
 -- Cleanse DIMORGANIZATION
 CREATE OR REPLACE TABLE DIMORGANIZATION_CLEAN AS
@@ -239,37 +161,11 @@ dedup AS (
 )
 SELECT * FROM dedup;
 
--- Validation outputs
-SELECT COUNT(*) AS ROWS_DIMORGANIZATION FROM DIMORGANIZATION;
-SELECT COUNT(*) AS ROWS_DIMORGANIZATION_CLEAN FROM DIMORGANIZATION_CLEAN; -- Verified, both counts at 14
-
--- Verify transformations
-SELECT *
-FROM DIMORGANIZATION_CLEAN
-ORDER BY OrganizationKey
-LIMIT 25;
-
 ---------------------
 
 
 
 ----- [DIMPRODUCT] -----
--- Checking of NULL values for PK
-SELECT COUNT(*) AS ProductKey_Null_Count
-FROM DIMPRODUCT
-WHERE "ProductKey" IS NULL;
-
--- Checking of duplicate PK
-SELECT "ProductKey", COUNT(*) AS Count
-FROM DIMPRODUCT
-GROUP BY "ProductKey"
-HAVING COUNT(*) > 1;
-
--- Duplicate Business Key checks.
-SELECT "ProductAlternateKey", COUNT(*) AS Count
-FROM DIMPRODUCT
-GROUP BY "ProductAlternateKey"
-HAVING COUNT(*) > 1;
 
 -- Cleanse DIMPRODUCT
 CREATE OR REPLACE TABLE DIMPRODUCT_CLEAN AS
@@ -380,44 +276,11 @@ dedup AS (
 )
 SELECT * FROM dedup;
 
--- Validation outputs
-SELECT COUNT(*) AS ROWS_DIMPRODUCT FROM DIMPRODUCT;
-SELECT COUNT(*) AS ROWS_DIMPRODUCT_CLEAN FROM DIMPRODUCT_CLEAN; -- Verified, both Counts at 606
-
--- Verify transformations
-SELECT
-  ProductKey,
-  ProductAlternateKey,
-  EnglishProductName,
-  Color,
-  Size,
-  Status,
-  EndDate
-FROM DIMPRODUCT_CLEAN
-ORDER BY ProductKey
-LIMIT 25;
-
 --------------------
 
 
 
 ----- [DIMPRODUCTCATEGORY] -----
--- Checking of NULL values for PK
-SELECT COUNT(*) AS ProductCategoryKey_Null_Count
-FROM DIMPRODUCTCATEGORY
-WHERE "ProductCategoryKey" IS NULL;
-
--- Checking of duplicate PK
-SELECT "ProductCategoryKey", COUNT(*) AS Count
-FROM DIMPRODUCTCATEGORY
-GROUP BY "ProductCategoryKey"
-HAVING COUNT(*) > 1;
-
--- Duplicate Business Key checks.
-SELECT "ProductCategoryAlternateKey", COUNT(*) AS Count
-FROM DIMPRODUCTCATEGORY
-GROUP BY "ProductCategoryAlternateKey"
-HAVING COUNT(*) > 1;
 
 -- Cleanse DIMPRODUCTCATEGORY
 CREATE OR REPLACE TABLE DIMPRODUCTCATEGORY_CLEAN AS
@@ -456,18 +319,6 @@ dedup AS (
   ) = 1
 )
 SELECT * FROM dedup;
-
--- Validation outputs
-SELECT COUNT(*) AS ROWS_DIMPRODUCTCATEGORY FROM DIMPRODUCTCATEGORY;
-SELECT COUNT(*) AS ROWS_DIMPRODUCTCATEGORY_CLEAN FROM DIMPRODUCTCATEGORY_CLEAN; -- Verified, both Counts at 4
-
--- Verify transformations
-SELECT *
-FROM DIMPRODUCTCATEGORY_CLEAN
-ORDER BY ProductCategoryKey
-LIMIT 25;
-
---------------------
 
 
 
