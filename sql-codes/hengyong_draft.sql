@@ -43,63 +43,32 @@ ls @asg_stage_cleaned;
 -- DIMSCENARIO_CLEANED
 --------------------------------
 -- creates table in stage as .gz format
-COPY INTO @asg_stage_cleaned/DimScenario_cleaned
-FROM
-(
-    SELECT
-    *
-    FROM DIMSCENARIO
-)
-FILE_FORMAT = (TYPE = 'CSV')
-HEADER = TRUE                  -- Include column names in the file
-OVERWRITE = TRUE;
+SELECT * from DIMSCENARIO limit 10;
 
--- Create an empty table in the database for the cleaned data
-CREATE OR REPLACE TABLE DimScenario_cleaned
-USING TEMPLATE (
-  SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*))
-  FROM TABLE(INFER_SCHEMA(
-      LOCATION => '@asg_stage_cleaned/DimScenario_cleaned_0_0_0.csv.gz',
-      FILE_FORMAT => 'csv_ff_header'
-  ))
-);
-
--- Copy cleaned data into the empty table created
-COPY INTO DimScenario_cleaned
-FROM @asg_stage_cleaned/DimScenario_cleaned_0_0_0.csv.gz
-FILE_FORMAT = (FORMAT_NAME = 'csv_ff');
-
-SELECT * FROM DIMSCENARIO_CLEANED LIMIT 10;
+CREATE OR REPLACE TABLE DIMSCENARIO_CLEAN AS
+SELECT 
+    "ScenarioKey" as ScenarioKey,
+    TRIM("ScenarioName") as ScenarioName
+FROM 
+DIMSCENARIO;
+SELECT * FROM DIMSCENARIO_CLEAN LIMIT 10;
 
 
 
 -- FACTFINANCE_CLEANED
 ---------------------------------------------
 SELECT * FROM FACTFINANCE LIMIT 10;
-
-COPY INTO @asg_stage_cleaned/FactFinance_cleaned
-FROM
-(
-    SELECT
-    *
-    FROM FACTFINANCE
-)
-FILE_FORMAT = (TYPE = 'CSV')
-HEADER = TRUE                  -- Include column names in the file
-OVERWRITE = TRUE;
-
-
-CREATE OR REPLACE TABLE FACTFINANCE_cleaned
-USING TEMPLATE (
-  SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*))
-  FROM TABLE(INFER_SCHEMA(
-      LOCATION => '@asg_stage_cleaned/FactFinance_cleaned_0_0_0.csv.gz',
-      FILE_FORMAT => 'csv_ff_header'
-  ))
-);
-COPY INTO FACTFINANCE_cleaned
-FROM @asg_stage_cleaned/FactFinance_cleaned_0_0_0.csv.gz
-FILE_FORMAT = (FORMAT_NAME = 'csv_ff');
-
+CREATE OR REPLACE TABLE FACTFINANCE_CLEAN AS
+SELECT
+  "FinanceKey" as FinanceKey,
+  "DateKey"    as DateKey,
+  "OrganizationKey" as OrgranizationKey,
+  "DepartmentGroupKey" as DepartmentGroupKey,
+  "ScenarioKey" as ScenarioKey,
+  "AccountKey" as AccountKey,
+  "Amount" as Amount
+FROM 
+FACTFINANCE;
+ 
 -- check data in cleaned factfinance table
-SELECT * FROM FACTFINANCE_CLEANED LIMIT 10;
+SELECT * FROM FACTFINANCE_CLEAN LIMIT 10;

@@ -669,3 +669,24 @@ FROM FactInternetSales;
 
 
 ------------------------------------------------------------
+-- Clean DimScenario Table
+CREATE OR REPLACE TABLE DIMSCENARIO_CLEAN AS
+SELECT 
+    "ScenarioKey" as ScenarioKey,
+    TRIM("ScenarioName") as ScenarioName
+FROM 
+DIMSCENARIO;
+
+
+-- Clean FactFinance Table
+CREATE OR REPLACE TABLE FACTFINANCE_CLEAN AS
+SELECT
+  "FinanceKey" as FinanceKey,
+  "DateKey"    as DateKey,
+  "OrganizationKey" as OrgranizationKey,
+  "DepartmentGroupKey" as DepartmentGroupKey,
+  "ScenarioKey" as ScenarioKey,
+  "AccountKey" as AccountKey,
+  "Amount" as Amount
+FROM 
+FACTFINANCE;
