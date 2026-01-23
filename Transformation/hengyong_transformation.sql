@@ -1,19 +1,18 @@
 USE ROLE TRAINING_ROLE;
 USE WAREHOUSE FERRET_WH;
 USE DATABASE GRP1_ASG;
-USE SCHEMA ASG;
+USE SCHEMA ASG_TRANSFORMATIONS;
+
 -- Create tables suitable to make a dashboard for a sales manager
 -- tables should answer: - sales figures by area, product category, product subcategory
 -- FACTINTERNETSALES
 
-
-
-CREATE OR REPLACE TEMPORARY TABLE SalesManager AS
+CREATE OR REPLACE TABLE SalesManager AS
 SELECT
     fis.ProductKey AS ProductKey,
     dp."EnglishProductName" as ProductName,
     COALESCE(dpc.ENGLISHPRODUCTCATEGORYNAME, 'Uncategorized') AS Category,
-    COALESCE(dpsc.ENGLISHPRODUCTSUBCATEGORYNAME, 'Uncategorized') AS Subcategory,
+    COALESCE(dpsc."EnglishProductSubcategoryName", 'Uncategorized') AS Subcategory,
     
 
     fis.OrderDate AS OrderDate,
@@ -24,8 +23,8 @@ SELECT
     
     fis.CustomerKey AS CustomerKey,
     dc.currencyalternatekey AS Currency,
-    dst.SalesTerritoryCountry AS Country,
-    dst.SalesTerritoryGroup AS Continent,
+    dst."SalesTerritoryCountry" AS Country,
+    dst."SalesTerritoryGroup" AS Continent,
 
     
     fis.SalesOrderNumber AS SalesOrderNumber,
@@ -43,17 +42,21 @@ SELECT
     
 
     
-FROM FACTINTERNETSALES_CLEAN fis
-JOIN DIMCURRENCY_CLEAN dc on
+FROM ASG_CLEAN.FACTINTERNETSALES_CLEAN fis
+JOIN ASG_CLEAN.DIMCURRENCY_CLEAN dc on
 fis.CurrencyKey = dc.currencykey
-JOIN DIMPRODUCT dp on
+
+JOIN ASG.DIMPRODUCT dp on
 fis.ProductKey = dp."ProductKey"
-JOIN DIMSALESTERRITORY_CLEANED dst on
-fis.SalesTerritoryKey = dst.salesterritorykey
-LEFT JOIN DIMPRODUCTSUBCATEGORY_CLEANED dpsc on
-dp."ProductSubcategoryKey" = dpsc.productsubcategorykey
-LEFT JOIN DIMPRODUCTCATEGORY_CLEAN dpc on
-dpc.PRODUCTCATEGORYKEY = dpsc.productcategorykey;
+
+JOIN ASG.DIMSALESTERRITORY dst on
+fis.SalesTerritoryKey = dst."SalesTerritoryKey"
+
+LEFT JOIN ASG.DIMPRODUCTSUBCATEGORY dpsc on
+dp."ProductSubcategoryKey" = dpsc."ProductSubcategoryKey"
+
+LEFT JOIN ASG_CLEAN.DIMPRODUCTCATEGORY_CLEAN dpc on
+dpc.PRODUCTCATEGORYKEY = dpsc."ProductCategoryKey";
 
 
 SELECT * FROM SalesManager LIMIT 10;
