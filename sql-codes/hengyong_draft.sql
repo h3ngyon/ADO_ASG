@@ -22,23 +22,17 @@ SELECT * FROM FACTFINANCE LIMIT 10;
 ls @asg_stage;
 
 
--- DIMSCENARIO_CLEANED
---------------------------------
-SELECT * from DIMSCENARIO limit 10;
-
+------------------------------------------------------------
+-- Clean DimScenario Table
 CREATE OR REPLACE TABLE DIMSCENARIO_CLEAN AS
 SELECT 
     "ScenarioKey" as ScenarioKey,
     TRIM("ScenarioName") as ScenarioName
 FROM 
 DIMSCENARIO;
-SELECT * FROM DIMSCENARIO_CLEAN LIMIT 10;
 
 
-
--- FACTFINANCE_CLEANED
----------------------------------------------
-SELECT * FROM FACTFINANCE LIMIT 10;
+-- Clean FactFinance Table
 CREATE OR REPLACE TABLE FACTFINANCE_CLEAN AS
 SELECT
   "FinanceKey" as FinanceKey,
@@ -50,6 +44,44 @@ SELECT
   "Amount" as Amount
 FROM 
 FACTFINANCE;
- 
--- check data in cleaned factfinance table
-SELECT * FROM FACTFINANCE_CLEAN LIMIT 10;
+
+-- CLEAN FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION
+CREATE OR REPLACE TABLE FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION_CLEAN AS
+SELECT 
+  "ProductKey" as ProductKey,
+  "CultureName" as CultureName,
+  "ProductDescription" as ProductDescription
+FROM
+FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION;
+
+-- CLEAN FACTCURRENCYRATE
+CREATE OR REPLACE TABLE FACTCURRENCYRATE_CLEAN AS
+SELECT
+ f."CurrencyKey" as CurrencyKey,
+ TRY_TO_DATE(d."FullDateAlternateKey")  as Date,
+ CAST(f."AverageRate" AS DECIMAL (15,5)) as AverageRate,
+ CAST(f."EndOfDayRate" AS DECIMAL (15,5)) as EndOfDayRate
+ FROM FACTCURRENCYRATE f
+ JOIN DIMDATE d on 
+ d."DateKey" = f."DateKey";
+
+-- CLEAN FACTCALLCENTER
+CREATE OR REPLACE TABLE FACTCALLCENTER_CLEAN AS
+SELECT
+  "FactCallCenterID" as FactCallCenterID,
+  TRY_TO_DATE(d."FullDateAlternateKey") as Date,
+  TRIM("WageType") as WageType,
+  TRIM("Shift") as Shift,
+  "LevelOneOperators" as LevelOneOperators,
+  "LevelTwoOperators" as LevelTwoOperators,
+  "TotalOperators" as TotalOperators,
+  "Calls" as Calls,
+  "AutomaticResponses" as AutomaticResponses,
+  "Orders" as Orders,
+  "IssuesRaised" as IssuesRaised,
+  "AverageTimePerIssue" as AverageTimePerIssue,
+  "ServiceGrade" as ServiceGrade
+FROM 
+FACTCALLCENTER f
+JOIN DIMDATE d on
+d."DateKey" = f."DateKey";
