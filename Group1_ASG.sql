@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 USE WAREHOUSE FERRET_WH;
 USE DATABASE GRP1_ASG;
-USE SCHEMA ASG;
+USE SCHEMA ASG_CLEAN;
 ALTER WAREHOUSE FERRET_WH
 SET AUTO_SUSPEND = 600;
 
