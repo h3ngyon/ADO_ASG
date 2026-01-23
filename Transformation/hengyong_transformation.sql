@@ -8,23 +8,7 @@ USE SCHEMA ASG;
 
 
 
-
-select * from DIMPRODUCTSUBCATEGORY_CLEANED LIMIT 10;
-
-CREATE OR REPLACE TEMPORARY TABLE Consolidated_Products AS
-SELECT
-    dp."ProductKey" as ProductKey,
-    dps.ENGLISHPRODUCTSUBCATEGORYNAME as Subcategory
-
-FROM DIMPRODUCT dp
-LEFT JOIN DIMPRODUCTSUBCATEGORY_CLEANED dps on
-dp."ProductSubcategoryKey" = dps.productsubcategorykey; 
-
-SELECT * FROM Consolidated_Products ;
-
-
-
-CREATE OR REPLACE TEMPORARY TABLE new_fisc AS
+CREATE OR REPLACE TEMPORARY TABLE SalesManager AS
 SELECT
     fis.ProductKey AS ProductKey,
     dp."EnglishProductName" as ProductName,
@@ -72,7 +56,7 @@ LEFT JOIN DIMPRODUCTCATEGORY_CLEAN dpc on
 dpc.PRODUCTCATEGORYKEY = dpsc.productcategorykey;
 
 
-SELECT * FROM new_fisc LIMIT 10;
+SELECT * FROM SalesManager LIMIT 10;
 
 
 
