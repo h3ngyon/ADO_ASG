@@ -1,7 +1,7 @@
 ------------------------------------------------------------
 USE WAREHOUSE FERRET_WH;
 USE DATABASE GRP1_ASG;
-USE SCHEMA ASG_CLEAN;
+USE SCHEMA ASG;
 ALTER WAREHOUSE FERRET_WH
 SET AUTO_SUSPEND = 600;
 
@@ -21,7 +21,7 @@ WITH base AS (
     TRIM("CustomMembers")                AS CustomMembers,
     TRIM("CustomMemberOptions")          AS CustomMemberOptions,
     "ValueType" AS ValueType,
-  FROM DIMACCOUNT
+  FROM ASG.DIMACCOUNT
   WHERE AccountKey IS NOT NULL
 ),
 dedup AS (
@@ -46,7 +46,7 @@ WITH base AS (
     "CurrencyKey" AS CurrencyKey,
     UPPER(TRIM("CurrencyAlternateKey")) AS CurrencyAlternateKey,
     INITCAP(TRIM("CurrencyName"))       AS CurrencyName
-  FROM DIMCURRENCY
+  FROM ASG.DIMCURRENCY
   WHERE "CurrencyKey" IS NOT NULL
 ),
 dedup AS (
@@ -108,7 +108,7 @@ WITH base AS (
 
     TRY_TO_DATE("DateFirstPurchase")       AS DateFirstPurchase,
     NULLIF(TRIM("CommuteDistance"), '')    AS CommuteDistance
-  FROM DIMCUSTOMER
+  FROM ASG.DIMCUSTOMER
   WHERE "CustomerKey" IS NOT NULL
 ),
 dedup_pk AS (
@@ -150,7 +150,7 @@ WITH base AS (
     "FiscalQuarter"                     AS FiscalQuarter,
     "FiscalYear"                        AS FiscalYear,
     "FiscalSemester"                    AS FiscalSemester
-  FROM DIMDATE
+  FROM ASG.DIMDATE
   WHERE "DateKey" IS NOT NULL
 ),
 dedup_pk AS (
@@ -175,7 +175,7 @@ WITH base AS (
     "DepartmentGroupKey"       AS DepartmentGroupKey,
     "ParentDepartmentGroupKey" AS ParentDepartmentGroupKey,
     NULLIF(INITCAP(TRIM("DepartmentGroupName")), '') AS DepartmentGroupName
-  FROM DIMDEPARTMENTGROUP
+  FROM ASG.DIMDEPARTMENTGROUP
   WHERE "DepartmentGroupKey" IS NOT NULL
 ),
 dedup_pk AS (
@@ -244,7 +244,7 @@ WITH base AS (
     "SalariedFlag" AS SalariedFlag,
     "VacationHours" AS VacationHours,
     "SickLeaveHours" AS SickLeaveHours
-  FROM DIMEMPLOYEE
+  FROM ASG.DIMEMPLOYEE
   WHERE "EmployeeKey" IS NOT NULL
 ),
 dedup AS (
@@ -287,7 +287,7 @@ WITH base AS (
     TRIM("PostalCode") AS PostalCode,
 
     "SalesTerritoryKey" AS SalesTerritoryKey
-  FROM DIMGEOGRAPHY
+  FROM ASG.DIMGEOGRAPHY
   WHERE "GeographyKey" IS NOT NULL
 ),
 fix_nulls AS (
@@ -337,7 +337,7 @@ WITH base AS (
     "PercentageOfOwnership" AS PercentageOfOwnership,
     TRIM("OrganizationName") AS OrganizationName,
     "CurrencyKey" AS CurrencyKey
-  FROM DIMORGANIZATION
+  FROM ASG.DIMORGANIZATION
   WHERE "OrganizationKey" IS NOT NULL
 ),
 fix_nulls AS (
@@ -416,7 +416,7 @@ WITH base AS (
 
     -- Status: NULL -> 'Unknown'
     COALESCE(NULLIF(TRIM("Status"), ''), 'Unknown') AS Status
-  FROM DIMPRODUCT
+  FROM ASG.DIMPRODUCT
   WHERE "ProductKey" IS NOT NULL
 ),
 fix_nulls AS (
@@ -495,7 +495,7 @@ WITH base AS (
     TRIM("EnglishProductCategoryName") AS EnglishProductCategoryName,
     TRIM("SpanishProductCategoryName") AS SpanishProductCategoryName,
     TRIM("FrenchProductCategoryName") AS FrenchProductCategoryName
-  FROM DIMPRODUCTCATEGORY
+  FROM asg.DIMPRODUCTCATEGORY
   WHERE "ProductCategoryKey" IS NOT NULL
 ),
 fix_nulls AS (
@@ -564,7 +564,7 @@ SELECT
     "StateProvinceCode" AS STATEPROVINCECODE,
     "PostalCode" AS POSTALCODE,
     "Phone" AS PHONE
-FROM ProspectiveBuyer
+FROM ASG.ProspectiveBuyer
 QUALIFY ROW_NUMBER() OVER (PARTITION BY "ProspectiveBuyerKey" ORDER BY "BirthDate" DESC) = 1;
 
 -- Cleaned Fact Survery Response 
@@ -578,7 +578,7 @@ SELECT
     COALESCE(TRIM("EnglishProductCategoryName"), '') AS PRODUCTCATEGORY,
     "ProductSubcategoryKey" AS PRODUCTSUBCATEGORYKEY,
     COALESCE(TRIM("EnglishProductSubcategoryName"), '') AS PRODUCTSUBCATEGORY
-FROM FactSurveyResponse;
+FROM ASG.FactSurveyResponse;
 
 -- Cleaned Fact Sales Quota
 
@@ -595,7 +595,7 @@ SELECT
     
     -- Change data type from FLOAT to DECIMAL
     CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SALESAMOUNTQUOTA
-FROM FactSalesQuota;
+FROM ASG.FactSalesQuota;
 
 --  Clean Fact Reseller Sales
 
@@ -607,7 +607,7 @@ SELECT
     "CalendarYear" AS CalendarYear,
     "CalendarQuarter" AS CalendarQuarter,
     CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SalesAmountQuota
-FROM FactSalesQuota;
+FROM ASG.FactSalesQuota;
 
 
 -- Clean Fact Internet Sales Reason
@@ -616,7 +616,7 @@ SELECT DISTINCT
     TRIM("SalesOrderNumber") AS SalesOrderNumber,
     "SalesOrderLineNumber" AS SalesOrderLineNumber,
     "SalesReasonKey" AS SalesReasonKey
-FROM FactInternetSalesReason;
+FROM ASG.FactInternetSalesReason;
 
 -- Clean Fact Internet Sales
 CREATE OR REPLACE TABLE FACTINTERNETSALES_CLEAN AS
@@ -652,7 +652,7 @@ SELECT
     -- Carrier Tracking Number and Customer PO Number 
     COALESCE("CarrierTrackingNumber", '') AS CarrierTrackingNumber,
     COALESCE("CustomerPONumber", '') AS CustomerPONumber
-FROM FactInternetSales;
+FROM ASG.FactInternetSales;
 
 
 
@@ -671,3 +671,66 @@ FROM FactInternetSales;
 
 
 ------------------------------------------------------------
+-- Clean DimScenario Table
+CREATE OR REPLACE TABLE DIMSCENARIO_CLEAN AS
+SELECT 
+    "ScenarioKey" as ScenarioKey,
+    TRIM("ScenarioName") as ScenarioName
+FROM 
+ASG.DIMSCENARIO;
+
+
+-- Clean FactFinance Table
+CREATE OR REPLACE TABLE FACTFINANCE_CLEAN AS
+SELECT
+  "FinanceKey" as FinanceKey,
+  "DateKey"    as DateKey,
+  "OrganizationKey" as OrgranizationKey,
+  "DepartmentGroupKey" as DepartmentGroupKey,
+  "ScenarioKey" as ScenarioKey,
+  "AccountKey" as AccountKey,
+  "Amount" as Amount
+FROM 
+ASG.FACTFINANCE;
+
+-- CLEAN FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION
+CREATE OR REPLACE TABLE FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION_CLEAN AS
+SELECT 
+  "ProductKey" as ProductKey,
+  "CultureName" as CultureName,
+  "ProductDescription" as ProductDescription
+FROM
+ASG.FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION;
+
+-- CLEAN FACTCURRENCYRATE
+CREATE OR REPLACE TABLE FACTCURRENCYRATE_CLEAN AS
+SELECT
+ f."CurrencyKey" as CurrencyKey,
+ TRY_TO_DATE(d."FullDateAlternateKey")  as Date,
+ CAST(f."AverageRate" AS DECIMAL (15,5)) as AverageRate,
+ CAST(f."EndOfDayRate" AS DECIMAL (15,5)) as EndOfDayRate
+ FROM 
+ ASG.FACTCURRENCYRATE f
+ JOIN ASG.DIMDATE d on 
+ d."DateKey" = f."DateKey";
+
+-- CLEAN FACTCALLCENTER
+CREATE OR REPLACE TABLE FACTCALLCENTER_CLEAN AS
+SELECT
+  "FactCallCenterID" as FactCallCenterID,
+  TRY_TO_DATE(d."FullDateAlternateKey") as Date,
+  TRIM("WageType") as WageType,
+  TRIM("Shift") as Shift,
+  "LevelOneOperators" as LevelOneOperators,
+  "LevelTwoOperators" as LevelTwoOperators,
+  "TotalOperators" as TotalOperators,
+  "Calls" as Calls,
+  "AutomaticResponses" as AutomaticResponses,
+  "Orders" as Orders,
+  "IssuesRaised" as IssuesRaised,
+  "AverageTimePerIssue" as AverageTimePerIssue,
+  "ServiceGrade" as ServiceGrade
+FROM 
+ASG.FACTCALLCENTER f
+JOIN ASG.DIMDATE d on
+d."DateKey" = f."DateKey";
