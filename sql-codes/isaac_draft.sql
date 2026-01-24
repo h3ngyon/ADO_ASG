@@ -17,7 +17,8 @@ DESC TABLE FactInternetSalesReason;
 SELECT * FROM FactInternetSalesReason;
 DESC TABLE FactInternetSales;
 SELECT * FROM FactInternetSales;
-----------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------[Data Cleansing]-----------------------------------------------------------------
 -- Check NULL Values for ProspectiveBuyer
 SELECT COUNT(*) AS ProspectiveBuyer_Nulls
 FROM ProspectiveBuyer
@@ -264,8 +265,8 @@ SELECT
 FROM FactInternetSales;
 
 SELECT * FROM FACTINTERNETSALES_CLEAN;
----------------------------------------------------------------------------------------------------------------------------------
-----[Transformation for Customer Analytics]----
+----------------------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------[Transformation for Customer Analytics]-----------------------------------------------------------------
 --- RFM Analysis: Value of Customers---
 CREATE OR REPLACE TABLE ANALYTICS_CUSTOMER_RFM AS
 WITH customer_aggregates AS (
@@ -361,3 +362,4 @@ GROUP BY 1, 2
 ORDER BY 1, 3 DESC;
 
 SELECT * FROM ANALYTICS_PRODUCT_INTEREST LIMIT 10;
+----------------------------------------------------------------------------------------------------------------------------------------------
