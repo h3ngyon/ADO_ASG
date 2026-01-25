@@ -1,7 +1,7 @@
 --Initialise Connection Settings
 USE WAREHOUSE CHEETAH_WH;
 USE DATABASE GRP1_ASG;
-USE SCHEMA ASG;
+USE SCHEMA ASG_CLEAN;
 ALTER WAREHOUSE CHEETAH_WH
 SET AUTO_SUSPEND = 600;
 
@@ -227,7 +227,7 @@ SELECT
   MinQty,
   MaxQty,
   DiscountPct
-FROM "DimPromotion_Clean"
+FROM DimPromotion_Clean
 ORDER BY PromotionKey
 LIMIT 25;
 

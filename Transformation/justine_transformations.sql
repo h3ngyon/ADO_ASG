@@ -21,9 +21,9 @@ LEFT JOIN ASG_CLEAN.DIMPRODUCTCATEGORY_CLEAN c ON s.ProductCategoryKey = c.Produ
 
 CREATE TABLE AGG_PRODUCT_SALES_SUMMARY AS
 WITH CombinedSales AS (
-    SELECT ProductKey, OrderQuantity, SalesAmount, TotalProductCost FROM FACTINTERNETSALES_CLEAN
+    SELECT ProductKey, OrderQuantity, SalesAmount, TotalProductCost FROM ASG_CLEAN.FACTINTERNETSALES_CLEAN
     UNION ALL
-    SELECT ProductKey, OrderQuantity, SalesAmount, TotalProductCost FROM FACTRESELLERSALES_CLEAN
+    SELECT ProductKey, OrderQuantity, SalesAmount, TotalProductCost FROM ASG_CLEAN.FACTRESELLERSALES_CLEAN
 )
 SELECT 
     ProductKey,
@@ -42,7 +42,7 @@ SELECT
     p.DiscountPct,
     SUM(s.SalesAmount) AS PromoSalesAmount,
     SUM(s.OrderQuantity) AS PromoUnitsSold
-FROM FACTINTERNETSALES_CLEAN s
+FROM ASG_CLEAN.FACTINTERNETSALES_CLEAN s
 JOIN DIMPROMOTION p ON s.PromotionKey = p.PromotionKey
 WHERE p.PromotionKey <> 1 -- Excluding 'No Discount'
 GROUP BY s.ProductKey, p.EnglishPromotionName, p.DiscountPct;
@@ -54,10 +54,10 @@ SELECT
     p.EnglishProductName,
     p.SafetyStockLevel,
     p.ListPrice
-FROM DIMPRODUCT_CLEAN p
+FROM ASG_CLEAN.DIMPRODUCT_CLEAN p
 LEFT JOIN (
-    SELECT ProductKey FROM FACTINTERNETSALES_CLEAN
+    SELECT ProductKey FROM ASG_CLEAN.FACTINTERNETSALES_CLEAN
     UNION 
-    SELECT ProductKey FROM FACTRESELLERSALES_CLEAN
+    SELECT ProductKey FROM ASG_CLEAN.FACTRESELLERSALES_CLEAN
 ) s ON p.ProductKey = s.ProductKey
 WHERE s.ProductKey IS NULL; -- Products with zero sales records
