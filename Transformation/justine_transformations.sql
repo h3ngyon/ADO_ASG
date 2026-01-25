@@ -43,7 +43,7 @@ SELECT
     SUM(s.SalesAmount) AS PromoSalesAmount,
     SUM(s.OrderQuantity) AS PromoUnitsSold
 FROM ASG_CLEAN.FACTINTERNETSALES_CLEAN s
-JOIN DIMPROMOTION p ON s.PromotionKey = p.PromotionKey
+JOIN ASG_CLEAN.DIMPROMOTION_CLEAN p ON s.PromotionKey = p.PromotionKey
 WHERE p.PromotionKey <> 1 -- Excluding 'No Discount'
 GROUP BY s.ProductKey, p.EnglishPromotionName, p.DiscountPct;
 
