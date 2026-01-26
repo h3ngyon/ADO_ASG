@@ -1,7 +1,7 @@
 --Initialise Connection Settings
 USE WAREHOUSE CHEETAH_WH;
 USE DATABASE GRP1_ASG;
-USE SCHEMA ASG;
+USE SCHEMA ASG_CLEAN;
 ALTER WAREHOUSE CHEETAH_WH
 SET AUTO_SUSPEND = 600;
 
@@ -15,23 +15,23 @@ DESC TABLE DIMSALESTERRITORY;
 ----- [DimProductSubcategory] -----
 -- Checking of NULL values for PK
 SELECT COUNT(*) AS ProductSubcategoryKey_Null_Count
-FROM DimProductSubcategory
+FROM ASG_RAW.DimProductSubcategory
 WHERE "ProductSubcategoryKey" IS NULL;
 
 -- Checking of duplicate PK
 SELECT "ProductSubcategoryKey", COUNT(*) AS Count
-FROM DimProductSubcategory
+FROM ASG_RAW.DimProductSubcategory
 GROUP BY "ProductSubcategoryKey"
 HAVING COUNT(*) > 1;
 
 -- Duplicate Business Key checks.
 SELECT "ProductSubcategoryAlternateKey", COUNT(*) AS Count
-FROM DimProductSubcategory
+FROM ASG_RAW.DimProductSubcategory
 GROUP BY "ProductSubcategoryAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DimProductSubcategory
-CREATE OR REPLACE TABLE DimProductSubcategory_Cleaned AS
+CREATE OR REPLACE TABLE DimProductSubcategory_Clean AS
 WITH base AS (
   SELECT
     "ProductSubcategoryKey" AS ProductSubcategoryKey,
@@ -40,7 +40,7 @@ WITH base AS (
     TRIM("SpanishProductSubcategoryName") AS SpanishProductSubcategoryName,
     TRIM("FrenchProductSubcategoryName") AS FrenchProductSubcategoryName,
     "ProductCategoryKey" AS ProductCategoryKey
-  FROM DimProductSubcategory
+  FROM ASG_RAW.DimProductSubcategory
   WHERE "ProductSubcategoryKey" IS NOT NULL
 ),
 dedup AS (
@@ -57,15 +57,15 @@ dedup AS (
 SELECT * FROM dedup;
 
 -- 3) Optional: quick validation outputs
-SELECT COUNT(*) AS ROWS_SOURCE FROM DimProductSubcategory;
-SELECT COUNT(*) AS ROWS_CLEAN FROM DimProductSubcategory_Cleaned; -- Verified, both Counts gives <37>. 
+SELECT COUNT(*) AS ROWS_SOURCE FROM ASG_RAW.DimProductSubcategory;
+SELECT COUNT(*) AS ROWS_CLEAN FROM DimProductSubcategory_Clean; -- Verified, both Counts gives <37>. 
 
 -- Verify transformations
 SELECT
   ProductSubcategoryKey,
   EnglishProductSubcategoryName,
   ProductCategoryKey
-FROM DimProductSubcategory_Cleaned
+FROM DimProductSubcategory_Clean
 ORDER BY ProductSubcategoryKey
 LIMIT 25;
 
@@ -73,23 +73,23 @@ LIMIT 25;
 ----- [DimReseller] -----
 -- Checking of NULL values for PK
 SELECT COUNT(*) AS ResellerKey_Null_Count
-FROM DimReseller
+FROM ASG_RAW.DimReseller
 WHERE "ResellerKey" IS NULL;
 
 -- Checking of duplicate PK
 SELECT "ResellerKey", COUNT(*) AS Count
-FROM DimReseller
+FROM ASG_RAW.DimReseller
 GROUP BY "ResellerKey"
 HAVING COUNT(*) > 1;
 
 -- Duplicate Business Key checks.
 SELECT "ResellerAlternateKey", COUNT(*) AS Count
-FROM DimReseller
+FROM ASG_RAW.DimReseller
 GROUP BY "ResellerAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DimReseller
-CREATE OR REPLACE TABLE DimReseller_Cleaned AS
+CREATE OR REPLACE TABLE DimReseller_Clean AS
 WITH base AS (
   SELECT
     "ResellerKey" AS ResellerKey,
@@ -122,7 +122,7 @@ WITH base AS (
     "AnnualRevenue" AS AnnualRevenue,
     "YearOpened" AS YearOpened
 
-  FROM DimReseller
+  FROM ASG_RAW.DimReseller
   WHERE "ResellerKey" IS NOT NULL
 ),
 dedup AS (
@@ -142,8 +142,8 @@ dedup AS (
 SELECT * FROM dedup;
 
 -- 3) Optional: quick validation outputs
-SELECT COUNT(*) AS ROWS_SOURCE FROM DimReseller;
-SELECT COUNT(*) AS ROWS_CLEAN FROM DimReseller_Cleaned; -- Verified, both Counts gives 701. 
+SELECT COUNT(*) AS ROWS_SOURCE FROM ASG_RAW.DimReseller;
+SELECT COUNT(*) AS ROWS_CLEAN FROM DimReseller_Clean; -- Verified, both Counts gives 701. 
 
 -- Verify transformations
 SELECT
@@ -153,30 +153,30 @@ SELECT
   MinPaymentAmount,
   OrderMonth,
   FirstOrderYear
-FROM DimReseller_Cleaned
+FROM DimReseller_Clean
 ORDER BY ResellerKey
 LIMIT 25;
 
 ----- [DimPromotion] -----
 -- Checking of NULL values for PK
 SELECT COUNT(*) AS PromotionKey_Null_Count
-FROM DimPromotion
+FROM ASG_RAW.DimPromotion
 WHERE "PromotionKey" IS NULL;
 
 -- Checking of duplicate PK
 SELECT "PromotionKey", COUNT(*) AS Count
-FROM DimPromotion
+FROM ASG_RAW.DimPromotion
 GROUP BY "PromotionKey"
 HAVING COUNT(*) > 1;
 
 -- Duplicate Business Key checks.
 SELECT "PromotionAlternateKey", COUNT(*) AS Count
-FROM DimPromotion
+FROM ASG_RAW.DimPromotion
 GROUP BY "PromotionAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DimPromotion
-CREATE OR REPLACE TABLE DimPromotion_Cleaned AS
+CREATE OR REPLACE TABLE DimPromotion_Clean AS
 WITH base AS (
   SELECT
     "PromotionKey" AS PromotionKey,
@@ -198,7 +198,7 @@ WITH base AS (
     -- replace NULL -> 999999 (No Limit) for MaxQty
     COALESCE("MaxQty", 999999) AS MaxQty
 
-  FROM DimPromotion
+  FROM ASG_RAW.DimPromotion
   WHERE "PromotionKey" IS NOT NULL
 ),
 dedup AS (
@@ -217,8 +217,8 @@ dedup AS (
 SELECT * FROM dedup;
 
 -- 3) Optional: quick validation outputs
-SELECT COUNT(*) AS ROWS_SOURCE FROM DimPromotion;
-SELECT COUNT(*) AS ROWS_CLEAN FROM DimPromotion_Cleaned; -- Verified, both Counts gives <16>. 
+SELECT COUNT(*) AS ROWS_SOURCE FROM ASG_RAW.DimPromotion;
+SELECT COUNT(*) AS ROWS_CLEAN FROM DimPromotion_Clean; -- Verified, both Counts gives <16>. 
 
 -- Verify transformations
 SELECT
@@ -227,37 +227,37 @@ SELECT
   MinQty,
   MaxQty,
   DiscountPct
-FROM "DimPromotion_Cleaned"
+FROM DimPromotion_Clean
 ORDER BY PromotionKey
 LIMIT 25;
 
 ----- [DimSalesReason] -----
 -- Checking of NULL values for PK
 SELECT COUNT(*) AS SalesReasonKey_Null_Count
-FROM DimSalesReason
+FROM ASG_RAW.DimSalesReason
 WHERE "SalesReasonKey" IS NULL;
 
 -- Checking of duplicate PK
 SELECT "SalesReasonKey", COUNT(*) AS Count
-FROM DimSalesReason
+FROM ASG_RAW.DimSalesReason
 GROUP BY "SalesReasonKey"
 HAVING COUNT(*) > 1;
 
 -- Duplicate Business Key checks.
 SELECT "SalesReasonAlternateKey", COUNT(*) AS Count
-FROM DimSalesReason
+FROM ASG_RAW.DimSalesReason
 GROUP BY "SalesReasonAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DimSalesReason
-CREATE OR REPLACE TABLE DimSalesReason_Cleaned AS
+CREATE OR REPLACE TABLE DimSalesReason_Clean AS
 WITH base AS (
   SELECT
     "SalesReasonKey" AS SalesReasonKey,
     "SalesReasonAlternateKey" AS SalesReasonAlternateKey,
     TRIM("SalesReasonName") AS SalesReasonName,
     TRIM("SalesReasonReasonType") AS SalesReasonReasonType
-  FROM DimSalesReason
+  FROM ASG_RAW.DimSalesReason
   WHERE "SalesReasonKey" IS NOT NULL
 ),
 dedup AS (
@@ -274,38 +274,38 @@ dedup AS (
 SELECT * FROM dedup;
 
 -- 3) Optional: quick validation outputs
-SELECT COUNT(*) AS ROWS_SOURCE FROM DimSalesReason;
-SELECT COUNT(*) AS ROWS_CLEAN FROM DimSalesReason_Cleaned; -- Verified, both Counts gives <insert actual count>. 
+SELECT COUNT(*) AS ROWS_SOURCE FROM ASG_RAW.DimSalesReason;
+SELECT COUNT(*) AS ROWS_CLEAN FROM DimSalesReason_Clean; -- Verified, both Counts gives <insert actual count>. 
 
 -- Verify transformations
 SELECT
   SalesReasonKey,
   SalesReasonName,
   SalesReasonReasonType
-FROM DimSalesReason_Cleaned
+FROM DimSalesReason_Clean
 ORDER BY SalesReasonKey
 LIMIT 25;
 
 ----- [DimSalesTerritory] -----
 -- Checking of NULL values for PK
 SELECT COUNT(*) AS SalesTerritoryKey_Null_Count
-FROM DimSalesTerritory
+FROM ASG_RAW.DimSalesTerritory
 WHERE "SalesTerritoryKey" IS NULL;
 
 -- Checking of duplicate PK
 SELECT "SalesTerritoryKey", COUNT(*) AS Count
-FROM DimSalesTerritory
+FROM ASG_RAW.DimSalesTerritory
 GROUP BY "SalesTerritoryKey"
 HAVING COUNT(*) > 1;
 
 -- Duplicate Business Key checks.
 SELECT "SalesTerritoryAlternateKey", COUNT(*) AS Count
-FROM DimSalesTerritory
+FROM ASG_RAW.DimSalesTerritory
 GROUP BY "SalesTerritoryAlternateKey"
 HAVING COUNT(*) > 1;
 
 -- Cleanse DimSalesTerritory
-CREATE OR REPLACE TABLE DimSalesTerritory_Cleaned AS
+CREATE OR REPLACE TABLE DimSalesTerritory_Clean AS
 WITH base AS (
   SELECT
     "SalesTerritoryKey" AS SalesTerritoryKey,
@@ -313,7 +313,7 @@ WITH base AS (
     TRIM("SalesTerritoryRegion") AS SalesTerritoryRegion,
     TRIM("SalesTerritoryCountry") AS SalesTerritoryCountry,
     TRIM("SalesTerritoryGroup") AS SalesTerritoryGroup
-  FROM DimSalesTerritory
+  FROM ASG_RAW.DimSalesTerritory
   WHERE "SalesTerritoryKey" IS NOT NULL
 ),
 dedup AS (
@@ -330,8 +330,8 @@ dedup AS (
 SELECT * FROM dedup;
 
 -- 3) Optional: quick validation outputs
-SELECT COUNT(*) AS ROWS_SOURCE FROM DimSalesTerritory;
-SELECT COUNT(*) AS ROWS_CLEAN FROM DimSalesTerritory_Cleaned; -- Verified, both Counts gives <insert actual count>. 
+SELECT COUNT(*) AS ROWS_SOURCE FROM ASG_RAW.DimSalesTerritory;
+SELECT COUNT(*) AS ROWS_CLEAN FROM DimSalesTerritory_Clean; -- Verified, both Counts gives <insert actual count>. 
 
 -- Verify transformations
 SELECT
@@ -339,7 +339,7 @@ SELECT
   SalesTerritoryRegion,
   SalesTerritoryCountry,
   SalesTerritoryGroup
-FROM DimSalesTerritory_Cleaned
+FROM DimSalesTerritory_Clean
 ORDER BY SalesTerritoryKey
 LIMIT 25;
 
@@ -348,59 +348,3 @@ LIMIT 25;
 
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
--- CREATING NEW TABLES FOR ASSIGNED SECTOR (PRODUCT PERFORMANCE ANALYSIS)
-CREATE TABLE MAP_PRODUCT_HIERARCHY AS
-SELECT 
-    p.ProductKey,
-    p.EnglishProductName AS ProductName,
-    p.ModelName,
-    s.EnglishProductSubcategoryName AS SubcategoryName,
-    c.EnglishProductCategoryName AS CategoryName
-FROM DIMPRODUCT_CLEAN p
-LEFT JOIN DIMPRODUCTSUBCATEGORY_CLEAN s ON p.ProductSubcategoryKey = s.ProductSubcategoryKey
-LEFT JOIN DIMPRODUCTCATEGORY_CLEAN c ON s.ProductCategoryKey = c.ProductCategoryKey;
-
-
-
-CREATE TABLE AGG_PRODUCT_SALES_SUMMARY AS
-WITH CombinedSales AS (
-    SELECT ProductKey, OrderQuantity, SalesAmount, TotalProductCost FROM FACTINTERNETSALES_CLEAN
-    UNION ALL
-    SELECT ProductKey, OrderQuantity, SalesAmount, TotalProductCost FROM FACTRESELLERSALES_CLEAN
-)
-SELECT 
-    ProductKey,
-    SUM(OrderQuantity) AS TotalUnitsSold,
-    SUM(SalesAmount) AS TotalRevenue,
-    SUM(SalesAmount) - SUM(TotalProductCost) AS TotalGrossProfit,
-    (SUM(SalesAmount) - SUM(TotalProductCost)) / NULLIF(SUM(SalesAmount), 0) AS ProfitMargin
-FROM CombinedSales
-GROUP BY ProductKey;
-
-
-CREATE TABLE FACT_PRODUCT_PROMO_EFFECTIVENESS AS
-SELECT 
-    s.ProductKey,
-    p.EnglishPromotionName,
-    p.DiscountPct,
-    SUM(s.SalesAmount) AS PromoSalesAmount,
-    SUM(s.OrderQuantity) AS PromoUnitsSold
-FROM FACTINTERNETSALES_CLEAN s
-JOIN DIMPROMOTION p ON s.PromotionKey = p.PromotionKey
-WHERE p.PromotionKey <> 1 -- Excluding 'No Discount'
-GROUP BY s.ProductKey, p.EnglishPromotionName, p.DiscountPct;
-
-
-CREATE TABLE DIM_SLOW_MOVING_INVENTORY AS
-SELECT 
-    p.ProductKey,
-    p.EnglishProductName,
-    p.SafetyStockLevel,
-    p.ListPrice
-FROM DIMPRODUCT_CLEAN p
-LEFT JOIN (
-    SELECT ProductKey FROM FACTINTERNETSALES_CLEAN
-    UNION 
-    SELECT ProductKey FROM FACTRESELLERSALES_CLEAN
-) s ON p.ProductKey = s.ProductKey
-WHERE s.ProductKey IS NULL; -- Products with zero sales records
