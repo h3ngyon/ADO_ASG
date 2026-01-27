@@ -1,0 +1,44 @@
+name: Snowflake connection test (SnowSQL)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test-snowsql:
+    runs-on: ubuntu-latest
+
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}
+      SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SnowSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L -o snowsql.bash https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql.bash
+          bash snowsql.bash
+
+      - name: Test connection (simple query)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ~/bin/snowsql \
+            -a "$SNOWFLAKE_ACCOUNT" \
+            -u "$SNOWFLAKE_USER" \
+            -p "$SNOWFLAKE_PASSWORD" \
+            -r "$SNOWFLAKE_ROLE" \
+            -w "$SNOWFLAKE_WAREHOUSE" \
+            -d "$SNOWFLAKE_DATABASE" \
+            -s "$SNOWFLAKE_SCHEMA" \
+            -q "select current_version(), current_user(), current_role();"
