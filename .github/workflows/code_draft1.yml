@@ -72,8 +72,6 @@ jobs:
           username    = ${SNOWFLAKE_USER}
           role        = ${SNOWFLAKE_ROLE}
           warehouse   = ${SNOWFLAKE_WAREHOUSE}
-          db          = ASG1_GRP
-          schema      = TRANSFORMATIONS
           private_key_path = ${SNOWSQL_PRIVATE_KEY_PATH}
           EOF
 
@@ -83,13 +81,21 @@ jobs:
       - name: Test Snowflake connection (RSA + passphrase)
         shell: bash
         env:
-          # THIS is what stops the interactive prompt
           SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
           set -euo pipefail
           : "${SNOWSQL_PRIVATE_KEY_PASSPHRASE:?Missing SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}"
+          : "${SNOWFLAKE_ROLE:?Missing SNOWFLAKE_ROLE}"
+          : "${SNOWFLAKE_WAREHOUSE:?Missing SNOWFLAKE_WAREHOUSE}"
 
           "$SNOWSQL_BIN" -c ci -q "
+            USE ROLE ${SNOWFLAKE_ROLE};
+            USE WAREHOUSE ${SNOWFLAKE_WAREHOUSE};
+            USE DATABASE ASG1_GRP;
+            USE SCHEMA TRANSFORMATIONS;
+
             SELECT
               CURRENT_USER()      AS user,
               CURRENT_ROLE()      AS role,
