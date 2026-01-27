@@ -1,4 +1,4 @@
-name: Snowflake connection test (SnowSQL)
+name: Snowflake connection test (SnowSQL - RSA)
 
 on:
   workflow_dispatch:
@@ -26,9 +26,7 @@ jobs:
           yes | bash snowsql_installer.bash
           set -o pipefail
 
-          echo "Locating snowsql binary..."
           SNOWSQL_BIN=$(find "$HOME" -type f -name snowsql -perm -u+x | head -n 1)
-
           if [ -z "$SNOWSQL_BIN" ]; then
             echo "SnowSQL binary not found"
             exit 1
@@ -36,43 +34,61 @@ jobs:
 
           echo "Found SnowSQL at: $SNOWSQL_BIN"
           "$SNOWSQL_BIN" -v
-
           echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> $GITHUB_ENV
 
-      - name: Create SnowSQL config
+      - name: Write RSA private key
         shell: bash
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
-          SNOWFLAKE_SCHEMA: ${{ secrets.SNOWFLAKE_SCHEMA }}
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
 
+          : "${SNOWFLAKE_PRIVATE_KEY:?Missing SNOWFLAKE_PRIVATE_KEY}"
+
           mkdir -p ~/.snowsql
+          echo "$SNOWFLAKE_PRIVATE_KEY" > ~/.snowsql/rsa_key.p8
+          chmod 600 ~/.snowsql/rsa_key.p8
+
+          echo "Private key written"
+
+      - name: Create SnowSQL config (RSA auth)
+        shell: bash
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}   # e.g. xy12345.ap-southeast-1
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}         # CICD_GHA_USER
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}         # CICD_ROLE
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+        run: |
+          set -euo pipefail
+
+          : "${SNOWFLAKE_ACCOUNT:?Missing SNOWFLAKE_ACCOUNT}"
+          : "${SNOWFLAKE_USER:?Missing SNOWFLAKE_USER}"
+          : "${SNOWFLAKE_ROLE:?Missing SNOWFLAKE_ROLE}"
 
           cat > ~/.snowsql/config <<EOF
           [connections.ci]
-          accountname = $SNOWFLAKE_ACCOUNT
-          username    = $SNOWFLAKE_USER
-          password    = $SNOWFLAKE_PASSWORD
-          role        = $SNOWFLAKE_ROLE
-          warehouse   = $SNOWFLAKE_WAREHOUSE
-          db          = $SNOWFLAKE_DATABASE
-          schema      = $SNOWFLAKE_SCHEMA
+          accountname = ${SNOWFLAKE_ACCOUNT}
+          username    = ${SNOWFLAKE_USER}
+          role        = ${SNOWFLAKE_ROLE}
+          warehouse   = ${SNOWFLAKE_WAREHOUSE}
+          db          = ASG1_GRP
+          schema      = TRANSFORMATIONS
+          private_key_path = ~/.snowsql/rsa_key.p8
           EOF
 
           chmod 600 ~/.snowsql/config
-          echo "SnowSQL config written"
+          echo "SnowSQL RSA config written"
 
       - name: Test Snowflake connection
         shell: bash
         run: |
           set -euo pipefail
 
-          "$SNOWSQL_BIN" \
-            -c ci \
-            -q "select current_version(), current_user(), current_role();"
+          "$SNOWSQL_BIN" -c ci -q "
+            SELECT
+              CURRENT_USER()      AS user,
+              CURRENT_ROLE()      AS role,
+              CURRENT_DATABASE()  AS db,
+              CURRENT_SCHEMA()    AS schema,
+              CURRENT_WAREHOUSE() AS warehouse;
+          "
