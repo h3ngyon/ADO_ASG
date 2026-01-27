@@ -10,18 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Install SnowSQL
+      - name: Install SnowSQL (non-interactive)
         shell: bash
         run: |
           set -euo pipefail
+
           SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.3-linux_x86_64.bash"
+
           curl -fL -o snowsql_installer.bash "$SNOWSQL_URL"
-          bash snowsql_installer.bash
+
+          # Force non-interactive install (CI-safe)
+          yes | bash snowsql_installer.bash
+
+          # Verify installation
           ~/bin/snowsql -v
 
-      - name: Test connection
+      - name: Test Snowflake connection
         shell: bash
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
@@ -33,6 +40,7 @@ jobs:
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
         run: |
           set -euo pipefail
+
           ~/bin/snowsql \
             -a "$SNOWFLAKE_ACCOUNT" \
             -u "$SNOWFLAKE_USER" \
