@@ -54,10 +54,11 @@ jobs:
       - name: Create SnowSQL config (RSA auth)
         shell: bash
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}      # e.g. xy12345.ap-southeast-1
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}        # e.g. CICD_GHA_USER
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}            # e.g. CICD_ROLE
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}      
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}        
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}            
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
         run: |
           set -euo pipefail
 
@@ -65,6 +66,7 @@ jobs:
           : "${SNOWFLAKE_USER:?Missing SNOWFLAKE_USER}"
           : "${SNOWFLAKE_ROLE:?Missing SNOWFLAKE_ROLE}"
           : "${SNOWSQL_PRIVATE_KEY_PATH:?Missing SNOWSQL_PRIVATE_KEY_PATH}"
+          : "${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE:?Missing SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}"
 
           cat > "$HOME/.snowsql/config" <<EOF
           [connections.ci]
@@ -75,6 +77,7 @@ jobs:
           db          = ASG1_GRP
           schema      = TRANSFORMATIONS
           private_key_path = ${SNOWSQL_PRIVATE_KEY_PATH}
+          private_key_passphrase = ${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}
           EOF
 
           chmod 600 "$HOME/.snowsql/config"
