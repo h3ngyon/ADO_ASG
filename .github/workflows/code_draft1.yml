@@ -34,7 +34,7 @@ jobs:
 
           echo "Found SnowSQL at: $SNOWSQL_BIN"
           "$SNOWSQL_BIN" -v
-          echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> $GITHUB_ENV
+          echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> "$GITHUB_ENV"
 
       - name: Write RSA private key
         shell: bash
@@ -73,11 +73,19 @@ jobs:
 
       - name: Run test.sql (Snowflake connection test)
         shell: bash
+        working-directory: ${{ github.workspace }}
         env:
           SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
           set -euo pipefail
 
-          "$SNOWSQL_BIN" -c ci -f test.sql
+          echo "Workspace contents:"
+          ls -la
+
+          TEST_SQL="$GITHUB_WORKSPACE/test.sql"
+          if [ ! -f "$TEST_SQL" ]; then
+            echo "ERROR: test.sql not found at $TEST_SQL"
+            exit 1
+          fi
+
+          "$SNOWSQL_BIN" -c ci -f "$TEST_SQL"
