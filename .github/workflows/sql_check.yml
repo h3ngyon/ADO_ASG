@@ -73,4 +73,4 @@ jobs:
           "$SNOWSQL_BIN" \
             -c ci \
             -o exit_on_error=true \
-            -f sql/tests/data_quality_checks.sql
+            -f data_quality_checks.sql
