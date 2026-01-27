@@ -22,13 +22,13 @@ jobs:
 
           curl -fL -o snowsql_installer.bash "$SNOWSQL_URL"
 
-          # Disable pipefail ONLY for installer (avoids broken pipe failure)
+          # Disable pipefail only for installer (avoids broken pipe failure)
           set +o pipefail
           yes | bash snowsql_installer.bash
           set -o pipefail
 
-          # Verify installation explicitly
-          ~/bin/snowsql -v
+          # Verify installation using the REAL install path
+          $HOME/snowsql/bin/snowsql -v
 
       - name: Test Snowflake connection
         shell: bash
@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ~/bin/snowsql \
+          $HOME/snowsql/bin/snowsql \
             -a "$SNOWFLAKE_ACCOUNT" \
             -u "$SNOWFLAKE_USER" \
             -p "$SNOWFLAKE_PASSWORD" \
