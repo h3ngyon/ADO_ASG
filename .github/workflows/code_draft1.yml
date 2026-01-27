@@ -55,7 +55,7 @@ jobs:
         shell: bash
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}   # e.g. xy12345.ap-southeast-1
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}         # CICD_GHA_USER
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}         # CICD_GHA_USER
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}         # CICD_ROLE
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
