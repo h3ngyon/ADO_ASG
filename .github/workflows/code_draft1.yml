@@ -21,12 +21,12 @@ jobs:
           SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.3-linux_x86_64.bash"
           curl -fL -o snowsql_installer.bash "$SNOWSQL_URL"
 
-          # SnowSQL installer exits early -> broken pipe is expected
+          # SnowSQL installer exits early; broken pipe is expected
           set +o pipefail
           yes | bash snowsql_installer.bash
           set -o pipefail
 
-          echo "Searching for snowsql binary..."
+          echo "Locating snowsql binary..."
           SNOWSQL_BIN=$(find "$HOME" -type f -name snowsql -perm -u+x | head -n 1)
 
           if [ -z "$SNOWSQL_BIN" ]; then
@@ -37,10 +37,9 @@ jobs:
           echo "Found SnowSQL at: $SNOWSQL_BIN"
           "$SNOWSQL_BIN" -v
 
-          # Persist path for next step
           echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> $GITHUB_ENV
 
-      - name: Test Snowflake connection
+      - name: Create SnowSQL config
         shell: bash
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
@@ -53,12 +52,27 @@ jobs:
         run: |
           set -euo pipefail
 
+          mkdir -p ~/.snowsql
+
+          cat > ~/.snowsql/config <<EOF
+          [connections.ci]
+          accountname = $SNOWFLAKE_ACCOUNT
+          username    = $SNOWFLAKE_USER
+          password    = $SNOWFLAKE_PASSWORD
+          role        = $SNOWFLAKE_ROLE
+          warehouse   = $SNOWFLAKE_WAREHOUSE
+          db          = $SNOWFLAKE_DATABASE
+          schema      = $SNOWFLAKE_SCHEMA
+          EOF
+
+          chmod 600 ~/.snowsql/config
+          echo "SnowSQL config written"
+
+      - name: Test Snowflake connection
+        shell: bash
+        run: |
+          set -euo pipefail
+
           "$SNOWSQL_BIN" \
-            -a "$SNOWFLAKE_ACCOUNT" \
-            -u "$SNOWFLAKE_USER" \
-            -p "$SNOWFLAKE_PASSWORD" \
-            -r "$SNOWFLAKE_ROLE" \
-            -w "$SNOWFLAKE_WAREHOUSE" \
-            -d "$SNOWFLAKE_DATABASE" \
-            -s "$SNOWFLAKE_SCHEMA" \
+            -c ci \
             -q "select current_version(), current_user(), current_role();"
