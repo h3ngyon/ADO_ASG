@@ -13,27 +13,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install SnowSQL (CI-safe)
+      - name: Install SnowSQL
         shell: bash
         run: |
           set -euo pipefail
 
-          SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.3-linux_x86_64.bash"
-          curl -fL -o snowsql_installer.bash "$SNOWSQL_URL"
+          curl -fL -o snowsql_installer.bash \
+            https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.3-linux_x86_64.bash
 
-          # SnowSQL installer exits early; broken pipe is expected
           set +o pipefail
           yes | bash snowsql_installer.bash
           set -o pipefail
 
           SNOWSQL_BIN=$(find "$HOME" -type f -name snowsql -perm -u+x | head -n 1)
-          if [ -z "$SNOWSQL_BIN" ]; then
-            echo "SnowSQL binary not found"
-            exit 1
-          fi
-
-          echo "Found SnowSQL at: $SNOWSQL_BIN"
-          "$SNOWSQL_BIN" -v
+          [ -n "$SNOWSQL_BIN" ]
           echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> "$GITHUB_ENV"
 
       - name: Write RSA private key
@@ -42,15 +35,13 @@ jobs:
           SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-          : "${SNOWFLAKE_PRIVATE_KEY:?Missing SNOWFLAKE_PRIVATE_KEY}"
 
           mkdir -p "$HOME/.snowsql"
           echo "$SNOWFLAKE_PRIVATE_KEY" > "$HOME/.snowsql/rsa_key.p8"
           chmod 600 "$HOME/.snowsql/rsa_key.p8"
-
           echo "SNOWSQL_PRIVATE_KEY_PATH=$HOME/.snowsql/rsa_key.p8" >> "$GITHUB_ENV"
 
-      - name: Create SnowSQL config (RSA auth)
+      - name: Create SnowSQL config
         shell: bash
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
@@ -71,21 +62,11 @@ jobs:
 
           chmod 600 "$HOME/.snowsql/config"
 
-      - name: Run test.sql (Snowflake connection test)
+      - name: Run test.sql
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
           SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
         run: |
           set -euo pipefail
-
-          echo "Workspace contents:"
-          ls -la
-
-          TEST_SQL="$GITHUB_WORKSPACE/test.sql"
-          if [ ! -f "$TEST_SQL" ]; then
-            echo "ERROR: test.sql not found at $TEST_SQL"
-            exit 1
-          fi
-
-          "$SNOWSQL_BIN" -c ci -f "$TEST_SQL"
+          "$SNOWSQL_BIN" -c ci -f test.sql
