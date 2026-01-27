@@ -42,21 +42,21 @@ jobs:
           SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
-
           : "${SNOWFLAKE_PRIVATE_KEY:?Missing SNOWFLAKE_PRIVATE_KEY}"
 
-          mkdir -p ~/.snowsql
-          echo "$SNOWFLAKE_PRIVATE_KEY" > ~/.snowsql/rsa_key.p8
-          chmod 600 ~/.snowsql/rsa_key.p8
+          mkdir -p "$HOME/.snowsql"
+          echo "$SNOWFLAKE_PRIVATE_KEY" > "$HOME/.snowsql/rsa_key.p8"
+          chmod 600 "$HOME/.snowsql/rsa_key.p8"
 
+          echo "SNOWSQL_PRIVATE_KEY_PATH=$HOME/.snowsql/rsa_key.p8" >> "$GITHUB_ENV"
           echo "Private key written"
 
       - name: Create SnowSQL config (RSA auth)
         shell: bash
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}   # e.g. xy12345.ap-southeast-1
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}         # CICD_GHA_USER
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}         # CICD_ROLE
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}      # e.g. xy12345.ap-southeast-1
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}        # e.g. CICD_GHA_USER
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}            # e.g. CICD_ROLE
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
           set -euo pipefail
@@ -64,8 +64,9 @@ jobs:
           : "${SNOWFLAKE_ACCOUNT:?Missing SNOWFLAKE_ACCOUNT}"
           : "${SNOWFLAKE_USER:?Missing SNOWFLAKE_USER}"
           : "${SNOWFLAKE_ROLE:?Missing SNOWFLAKE_ROLE}"
+          : "${SNOWSQL_PRIVATE_KEY_PATH:?Missing SNOWSQL_PRIVATE_KEY_PATH}"
 
-          cat > ~/.snowsql/config <<EOF
+          cat > "$HOME/.snowsql/config" <<EOF
           [connections.ci]
           accountname = ${SNOWFLAKE_ACCOUNT}
           username    = ${SNOWFLAKE_USER}
@@ -73,10 +74,10 @@ jobs:
           warehouse   = ${SNOWFLAKE_WAREHOUSE}
           db          = ASG1_GRP
           schema      = TRANSFORMATIONS
-          private_key_path = ~/.snowsql/rsa_key.p8
+          private_key_path = ${SNOWSQL_PRIVATE_KEY_PATH}
           EOF
 
-          chmod 600 ~/.snowsql/config
+          chmod 600 "$HOME/.snowsql/config"
           echo "SnowSQL RSA config written"
 
       - name: Test Snowflake connection
