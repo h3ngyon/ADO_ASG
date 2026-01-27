@@ -13,22 +13,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install SnowSQL (CI-safe, non-interactive)
+      - name: Install SnowSQL (CI-safe)
         shell: bash
         run: |
           set -euo pipefail
 
           SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.3-linux_x86_64.bash"
-
           curl -fL -o snowsql_installer.bash "$SNOWSQL_URL"
 
-          # Disable pipefail only for installer (avoids broken pipe failure)
+          # SnowSQL installer exits early -> broken pipe is expected
           set +o pipefail
           yes | bash snowsql_installer.bash
           set -o pipefail
 
-          # Verify installation using the REAL install path
-          $HOME/snowsql/bin/snowsql -v
+          echo "Searching for snowsql binary..."
+          SNOWSQL_BIN=$(find "$HOME" -type f -name snowsql -perm -u+x | head -n 1)
+
+          if [ -z "$SNOWSQL_BIN" ]; then
+            echo "SnowSQL binary not found"
+            exit 1
+          fi
+
+          echo "Found SnowSQL at: $SNOWSQL_BIN"
+          "$SNOWSQL_BIN" -v
+
+          # Persist path for next step
+          echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> $GITHUB_ENV
 
       - name: Test Snowflake connection
         shell: bash
@@ -43,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          $HOME/snowsql/bin/snowsql \
+          "$SNOWSQL_BIN" \
             -a "$SNOWFLAKE_ACCOUNT" \
             -u "$SNOWFLAKE_USER" \
             -p "$SNOWFLAKE_PASSWORD" \
