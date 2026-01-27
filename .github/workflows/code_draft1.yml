@@ -49,22 +49,16 @@ jobs:
           chmod 600 "$HOME/.snowsql/rsa_key.p8"
 
           echo "SNOWSQL_PRIVATE_KEY_PATH=$HOME/.snowsql/rsa_key.p8" >> "$GITHUB_ENV"
-          echo "Private key written"
 
       - name: Create SnowSQL config (RSA auth)
         shell: bash
         env:
-          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}      # e.g. xy12345.ap-southeast-1
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}        # e.g. CICD_GHA_USER
-          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}            # e.g. CICD_ROLE
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
           set -euo pipefail
-
-          : "${SNOWFLAKE_ACCOUNT:?Missing SNOWFLAKE_ACCOUNT}"
-          : "${SNOWFLAKE_USER:?Missing SNOWFLAKE_USER}"
-          : "${SNOWFLAKE_ROLE:?Missing SNOWFLAKE_ROLE}"
-          : "${SNOWSQL_PRIVATE_KEY_PATH:?Missing SNOWSQL_PRIVATE_KEY_PATH}"
 
           cat > "$HOME/.snowsql/config" <<EOF
           [connections.ci]
@@ -76,9 +70,8 @@ jobs:
           EOF
 
           chmod 600 "$HOME/.snowsql/config"
-          echo "SnowSQL RSA config written"
 
-      - name: Test Snowflake connection (RSA + passphrase)
+      - name: Run test.sql (Snowflake connection test)
         shell: bash
         env:
           SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
@@ -86,20 +79,5 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
         run: |
           set -euo pipefail
-          : "${SNOWSQL_PRIVATE_KEY_PASSPHRASE:?Missing SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}"
-          : "${SNOWFLAKE_ROLE:?Missing SNOWFLAKE_ROLE}"
-          : "${SNOWFLAKE_WAREHOUSE:?Missing SNOWFLAKE_WAREHOUSE}"
 
-          "$SNOWSQL_BIN" -c ci -q "
-            USE ROLE ${SNOWFLAKE_ROLE};
-            USE WAREHOUSE ${SNOWFLAKE_WAREHOUSE};
-            USE DATABASE ASG1_GRP;
-            USE SCHEMA TRANSFORMATIONS;
-
-            SELECT
-              CURRENT_USER()      AS user,
-              CURRENT_ROLE()      AS role,
-              CURRENT_DATABASE()  AS db,
-              CURRENT_SCHEMA()    AS schema,
-              CURRENT_WAREHOUSE() AS warehouse;
-          "
+          "$SNOWSQL_BIN" -c ci -f test.sql
