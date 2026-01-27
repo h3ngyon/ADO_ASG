@@ -1,4 +1,4 @@
-name: Snowflake connection test (SnowSQL - RSA)
+name: auto_transform_tables
 
 on:
   workflow_dispatch:
