@@ -706,7 +706,7 @@ SELECT
     "StateProvinceCode" AS STATEPROVINCECODE,
     "PostalCode" AS POSTALCODE,
     "Phone" AS PHONE
-FROM ASG.ProspectiveBuyer
+FROM ASG_RAW.ProspectiveBuyer
 QUALIFY ROW_NUMBER() OVER (PARTITION BY "ProspectiveBuyerKey" ORDER BY "BirthDate" DESC) = 1;
 
 -- Cleaned Fact Survery Response 
@@ -720,7 +720,7 @@ SELECT
     COALESCE(TRIM("EnglishProductCategoryName"), '') AS PRODUCTCATEGORY,
     "ProductSubcategoryKey" AS PRODUCTSUBCATEGORYKEY,
     COALESCE(TRIM("EnglishProductSubcategoryName"), '') AS PRODUCTSUBCATEGORY
-FROM ASG.FactSurveyResponse;
+FROM ASG_RAW.FactSurveyResponse;
 
 -- Cleaned Fact Sales Quota
 
@@ -737,7 +737,7 @@ SELECT
     
     -- Change data type from FLOAT to DECIMAL
     CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SALESAMOUNTQUOTA
-FROM ASG.FactSalesQuota;
+FROM ASG_RAW.FactSalesQuota;
 
 --  Clean Fact Reseller Sales
 
@@ -749,7 +749,7 @@ SELECT
     "CalendarYear" AS CalendarYear,
     "CalendarQuarter" AS CalendarQuarter,
     CAST("SalesAmountQuota" AS DECIMAL(18,2)) AS SalesAmountQuota
-FROM ASG.FactSalesQuota;
+FROM ASG_RAW.FactSalesQuota;
 
 
 -- Clean Fact Internet Sales Reason
@@ -758,7 +758,7 @@ SELECT DISTINCT
     TRIM("SalesOrderNumber") AS SalesOrderNumber,
     "SalesOrderLineNumber" AS SalesOrderLineNumber,
     "SalesReasonKey" AS SalesReasonKey
-FROM ASG.FactInternetSalesReason;
+FROM ASG_RAW.FactInternetSalesReason;
 
 -- Clean Fact Internet Sales
 CREATE OR REPLACE TABLE FACTINTERNETSALES_CLEAN AS
@@ -794,17 +794,7 @@ SELECT
     -- Carrier Tracking Number and Customer PO Number 
     COALESCE("CarrierTrackingNumber", '') AS CarrierTrackingNumber,
     COALESCE("CustomerPONumber", '') AS CustomerPONumber
-FROM ASG.FactInternetSales;
-
-
-
-
-
-
-
-
-
-
+FROM ASG_RAW.FactInternetSales;
 
 
 
@@ -819,7 +809,7 @@ SELECT
     "ScenarioKey" as ScenarioKey,
     TRIM("ScenarioName") as ScenarioName
 FROM 
-ASG.DIMSCENARIO;
+ASG_RAW.DIMSCENARIO;
 
 
 -- Clean FactFinance Table
@@ -833,7 +823,7 @@ SELECT
   "AccountKey" as AccountKey,
   "Amount" as Amount
 FROM 
-ASG.FACTFINANCE;
+ASG_RAW.FACTFINANCE;
 
 -- CLEAN FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION
 CREATE OR REPLACE TABLE FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION_CLEAN AS
@@ -842,7 +832,7 @@ SELECT
   "CultureName" as CultureName,
   "ProductDescription" as ProductDescription
 FROM
-ASG.FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION;
+ASG_RAW.FACTADDITIONALINTERNATIONALPRODUCTDESCRIPTION;
 
 -- CLEAN FACTCURRENCYRATE
 CREATE OR REPLACE TABLE FACTCURRENCYRATE_CLEAN AS
@@ -852,8 +842,8 @@ SELECT
  CAST(f."AverageRate" AS DECIMAL (15,5)) as AverageRate,
  CAST(f."EndOfDayRate" AS DECIMAL (15,5)) as EndOfDayRate
  FROM 
- ASG.FACTCURRENCYRATE f
- JOIN ASG.DIMDATE d on 
+ ASG_RAW.FACTCURRENCYRATE f
+ JOIN ASG_RAW.DIMDATE d on 
  d."DateKey" = f."DateKey";
 
 -- CLEAN FACTCALLCENTER
@@ -873,6 +863,6 @@ SELECT
   "AverageTimePerIssue" as AverageTimePerIssue,
   "ServiceGrade" as ServiceGrade
 FROM 
-ASG.FACTCALLCENTER f
-JOIN ASG.DIMDATE d on
+ASG_RAW.FACTCALLCENTER f
+JOIN ASG_RAW.DIMDATE d on
 d."DateKey" = f."DateKey";
