@@ -770,7 +770,21 @@ SELECT
     -- Carrier Tracking Number and Customer PO Number 
     COALESCE("CarrierTrackingNumber", '') AS CarrierTrackingNumber,
     COALESCE("CustomerPONumber", '') AS CustomerPONumber
-FROM ASG_RAW.FactInternetSales;
+FROM ASG.FactInternetSales;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
