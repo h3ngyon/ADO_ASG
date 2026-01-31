@@ -62,11 +62,11 @@ jobs:
 
           chmod 600 "$HOME/.snowsql/config"
 
-      - name: Run test.sql
+      - name: Run clean_tables_FINAL.sql
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
           SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
         run: |
           set -euo pipefail
-          "$SNOWSQL_BIN" -c ci -f test.sql
+          "$SNOWSQL_BIN" -c ci -f clean_tables_FINAL.sql
