@@ -1,5 +1,7 @@
 ------------------------------------------------------------
 USE ROLE CICD_ROLE;
+
+USE WAREHOUSE FERRET_WH;
 USE DATABASE GRP1_ASG;
 USE SCHEMA ASG_CLEAN;
 
