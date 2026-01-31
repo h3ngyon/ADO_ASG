@@ -1,0 +1,76 @@
+name: data_quality_checks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SnowSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl -fL -o snowsql_installer.bash \
+            https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.4/linux_x86_64/snowsql-1.4.3-linux_x86_64.bash
+
+          set +o pipefail
+          yes | bash snowsql_installer.bash
+          set -o pipefail
+
+          SNOWSQL_BIN=$(find "$HOME" -type f -name snowsql -perm -u+x | head -n 1)
+          [ -n "$SNOWSQL_BIN" ]
+          echo "SNOWSQL_BIN=$SNOWSQL_BIN" >> "$GITHUB_ENV"
+
+      - name: Write RSA private key
+        shell: bash
+        env:
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$HOME/.snowsql"
+          echo "$SNOWFLAKE_PRIVATE_KEY" > "$HOME/.snowsql/rsa_key.p8"
+          chmod 600 "$HOME/.snowsql/rsa_key.p8"
+          echo "SNOWSQL_PRIVATE_KEY_PATH=$HOME/.snowsql/rsa_key.p8" >> "$GITHUB_ENV"
+
+      - name: Create SnowSQL config
+        shell: bash
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USERNAME }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+        run: |
+          set -euo pipefail
+
+          cat > "$HOME/.snowsql/config" <<EOF
+          [connections.ci]
+          accountname = ${SNOWFLAKE_ACCOUNT}
+          username    = ${SNOWFLAKE_USER}
+          role        = ${SNOWFLAKE_ROLE}
+          warehouse   = ${SNOWFLAKE_WAREHOUSE}
+          private_key_path = ${SNOWSQL_PRIVATE_KEY_PATH}
+          EOF
+
+          chmod 600 "$HOME/.snowsql/config"
+
+      - name: Run data quality checks
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SNOWSQL_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          "$SNOWSQL_BIN" \
+            -c ci \
+            -o exit_on_error=true \
+            -f data_quality_checks.sql

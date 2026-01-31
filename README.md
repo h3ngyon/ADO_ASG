@@ -1,2 +1,1 @@
-Use Jupyter branch to make changes to the jupyter notebook file 
-for staging and verification before merging it to the main branch
+This is the repository for ADO, where we store all of our codes and also implement the CI/CD using Github Actions
