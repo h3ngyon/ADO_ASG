@@ -1,9 +1,7 @@
 ------------------------------------------------------------
-
-
+USE ROLE CICD_ROLE;
 USE DATABASE GRP1_ASG;
-CREATE OR REPLACE SCHEMA test;
-USE SCHEMA test;
+USE SCHEMA ASG_CLEAN;
 
 
 --- Cleansing of Tables (Handling NULL values, etc.) --- 
